@@ -27,7 +27,10 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!email || !password) {
-      sendJson(res, 400, { error: 'Email and password are required' });
+      sendJson(res, 400, {
+        error: 'Email and password are required',
+        code: 'AUTH_VALIDATION_ERROR',
+      });
       return;
     }
 
@@ -38,7 +41,10 @@ export default async function handler(req: any, res: any) {
     });
 
     if (error) {
-      sendJson(res, 400, { error: error.message });
+      sendJson(res, 400, {
+        error: error.message,
+        code: 'AUTH_SIGNUP_FAILED',
+      });
       return;
     }
 
@@ -49,6 +55,7 @@ export default async function handler(req: any, res: any) {
     sendJson(res, 200, {
       user: data.session && data.user ? toPublicUser(data.user) : null,
       emailConfirmationRequired: !data.session,
+      code: 'AUTH_SIGNUP_SUCCESS',
     });
   } catch (error) {
     console.error('[Auth Signup] Unexpected error', error);

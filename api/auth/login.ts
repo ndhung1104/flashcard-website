@@ -27,7 +27,10 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!email || !password) {
-      sendJson(res, 400, { error: 'Email and password are required' });
+      sendJson(res, 400, {
+        error: 'Email and password are required',
+        code: 'AUTH_VALIDATION_ERROR',
+      });
       return;
     }
 
@@ -38,12 +41,18 @@ export default async function handler(req: any, res: any) {
     });
 
     if (error || !data.session || !data.user) {
-      sendJson(res, 401, { error: error?.message ?? 'Invalid credentials' });
+      sendJson(res, 401, {
+        error: error?.message ?? 'Invalid credentials',
+        code: 'AUTH_INVALID_CREDENTIALS',
+      });
       return;
     }
 
     setAuthCookies(res, data.session);
-    sendJson(res, 200, { user: toPublicUser(data.user) });
+    sendJson(res, 200, {
+      user: toPublicUser(data.user),
+      code: 'AUTH_LOGIN_SUCCESS',
+    });
   } catch (error) {
     console.error('[Auth Login] Unexpected error', error);
     const message =

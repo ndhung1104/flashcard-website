@@ -9,11 +9,15 @@ export default async function handler(req: any, res: any) {
 
   const auth = await requireAuth(req, res);
   if (!auth) {
-    sendJson(res, 401, { error: 'Unauthorized' });
+    sendJson(res, 401, {
+      error: 'Unauthorized',
+      code: 'AUTH_UNAUTHORIZED',
+    });
     return;
   }
 
   sendJson(res, 200, {
+    code: 'AUTH_ME_SUCCESS',
     user: {
       id: auth.userId,
       email: auth.email,

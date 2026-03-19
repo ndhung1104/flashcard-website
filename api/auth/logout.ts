@@ -8,6 +8,9 @@ export default async function handler(req: any, res: any) {
   }
 
   clearAuthCookies(res);
-  sendJson(res, 200, { success: true });
+  sendJson(res, 200, {
+    success: true,
+    code: 'AUTH_LOGOUT_SUCCESS',
+  });
 }
 

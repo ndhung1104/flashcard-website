@@ -1,5 +1,5 @@
-﻿import { createClient } from '@supabase/supabase-js';
-import { env } from './env';
+import { createClient } from '@supabase/supabase-js';
+import { getServerEnv } from './env.js';
 
 const baseOptions = {
   auth: {
@@ -10,10 +10,12 @@ const baseOptions = {
 };
 
 export function createAnonClient() {
+  const env = getServerEnv();
   return createClient(env.supabaseUrl, env.supabaseAnonKey, baseOptions);
 }
 
 export function createUserClient(accessToken: string) {
+  const env = getServerEnv();
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
     ...baseOptions,
     global: {
@@ -23,3 +25,4 @@ export function createUserClient(accessToken: string) {
     },
   });
 }
+

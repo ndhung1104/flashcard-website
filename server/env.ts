@@ -1,4 +1,4 @@
-function getRequiredEnv(name: string): string {
+﻿function getRequiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -6,9 +6,11 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-export const env = {
-  supabaseUrl: getRequiredEnv('SUPABASE_URL'),
-  supabaseAnonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
-  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-  nodeEnv: process.env.NODE_ENV ?? 'development',
-};
+export function getServerEnv() {
+  return {
+    supabaseUrl: getRequiredEnv('SUPABASE_URL'),
+    supabaseAnonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+    nodeEnv: process.env.NODE_ENV ?? 'development',
+  };
+}

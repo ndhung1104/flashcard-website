@@ -1,5 +1,5 @@
-﻿import { clearAuthCookies } from '../../server/cookies';
-import { methodNotAllowed, sendJson } from '../../server/http';
+import { clearAuthCookies } from '../../server/cookies.js';
+import { methodNotAllowed, sendJson } from '../../server/http.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -10,3 +10,4 @@ export default async function handler(req: any, res: any) {
   clearAuthCookies(res);
   sendJson(res, 200, { success: true });
 }
+

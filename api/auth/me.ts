@@ -1,5 +1,5 @@
-﻿import { requireAuth } from '../../server/auth';
-import { methodNotAllowed, sendJson } from '../../server/http';
+import { requireAuth } from '../../server/auth.js';
+import { methodNotAllowed, sendJson } from '../../server/http.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') {
@@ -20,3 +20,4 @@ export default async function handler(req: any, res: any) {
     },
   });
 }
+

@@ -1,12 +1,12 @@
-﻿import { requireAuth } from '../../server/auth';
-import { mapSingleDeck } from '../../server/decks';
+import { requireAuth } from '../../server/auth.js';
+import { mapSingleDeck } from '../../server/decks.js';
 import {
   getQueryParam,
   methodNotAllowed,
   parseJsonBody,
   sendJson,
-} from '../../server/http';
-import { createUserClient } from '../../server/supabase';
+} from '../../server/http.js';
+import { createUserClient } from '../../server/supabase.js';
 
 function normalizeCardInput(input: unknown) {
   const card = input && typeof input === 'object' ? (input as any) : {};
@@ -182,3 +182,4 @@ export default async function handler(req: any, res: any) {
     sendJson(res, 500, { error: message });
   }
 }
+

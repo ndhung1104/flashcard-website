@@ -1,5 +1,5 @@
-﻿import { clearAuthCookies, readAuthCookies, setAuthCookies } from './cookies';
-import { createAnonClient } from './supabase';
+import { clearAuthCookies, readAuthCookies, setAuthCookies } from './cookies.js';
+import { createAnonClient } from './supabase.js';
 
 export interface AuthResult {
   userId: string;
@@ -68,3 +68,4 @@ export async function requireAuth(req: any, res: any): Promise<AuthResult | null
   clearAuthCookies(res);
   return null;
 }
+

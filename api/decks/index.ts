@@ -1,7 +1,7 @@
-﻿import { requireAuth } from '../../server/auth';
-import { mapDeckRows, mapSingleDeck } from '../../server/decks';
-import { methodNotAllowed, parseJsonBody, sendJson } from '../../server/http';
-import { createUserClient } from '../../server/supabase';
+import { requireAuth } from '../../server/auth.js';
+import { mapDeckRows, mapSingleDeck } from '../../server/decks.js';
+import { methodNotAllowed, parseJsonBody, sendJson } from '../../server/http.js';
+import { createUserClient } from '../../server/supabase.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -87,3 +87,4 @@ export default async function handler(req: any, res: any) {
     sendJson(res, 500, { error: message });
   }
 }
+

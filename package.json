@@ -6,7 +6,10 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "dev:full": "npx vercel dev"
+    "dev:full": "npx vercel dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -71,9 +74,13 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "^29.0.0",
     "tailwindcss": "4.1.12",
-    "vite": "^6.4.1"
+    "vite": "^6.4.1",
+    "vitest": "^4.1.0"
   },
   "peerDependencies": {
     "react": "18.3.1",

@@ -35,7 +35,9 @@ export default async function handler(req: any, res: any) {
       if (deckIds.length > 0) {
         const { data: cards, error: cardError } = await supabase
           .from('cards')
-          .select('id, deck_id, term, meaning, tags, is_unfamiliar, created_at')
+          .select(
+            'id, deck_id, term, meaning, tags, is_unfamiliar, mastery_level, last_reviewed_at, next_review_at, created_at'
+          )
           .in('deck_id', deckIds)
           .order('created_at', { ascending: true });
 

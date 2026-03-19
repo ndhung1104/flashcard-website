@@ -39,6 +39,9 @@ create table if not exists public.cards (
   normalized_term text not null default '',
   tags text[] not null default '{}',
   is_unfamiliar boolean not null default false,
+  mastery_level integer not null default 0 check (mastery_level between 0 and 3),
+  last_reviewed_at timestamptz null,
+  next_review_at timestamptz null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint cards_deck_fk foreign key (deck_id, user_id)
@@ -48,9 +51,25 @@ create table if not exists public.cards (
 alter table public.cards
   add column if not exists normalized_term text;
 
+alter table public.cards
+  add column if not exists mastery_level integer;
+
+alter table public.cards
+  add column if not exists last_reviewed_at timestamptz;
+
+alter table public.cards
+  add column if not exists next_review_at timestamptz;
+
 update public.cards
 set normalized_term = public.normalize_term(term)
 where normalized_term is null or normalized_term = '';
+
+update public.cards
+set mastery_level = case
+  when is_unfamiliar = true then 1
+  else 0
+end
+where mastery_level is null;
 
 alter table public.cards
   alter column normalized_term set default '';
@@ -58,11 +77,33 @@ alter table public.cards
 alter table public.cards
   alter column normalized_term set not null;
 
+alter table public.cards
+  alter column mastery_level set default 0;
+
+alter table public.cards
+  alter column mastery_level set not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'cards_mastery_level_check'
+      and conrelid = 'public.cards'::regclass
+  ) then
+    alter table public.cards
+      add constraint cards_mastery_level_check
+      check (mastery_level between 0 and 3);
+  end if;
+end $$;
+
 create unique index if not exists cards_id_user_id_key on public.cards (id, user_id);
 create unique index if not exists cards_user_deck_normalized_term_key
 on public.cards (user_id, deck_id, normalized_term);
 create index if not exists cards_user_id_deck_id_idx on public.cards (user_id, deck_id, created_at);
 create index if not exists cards_user_id_unfamiliar_idx on public.cards (user_id, is_unfamiliar);
+create index if not exists cards_user_id_mastery_idx on public.cards (user_id, mastery_level, created_at);
+create index if not exists cards_user_id_next_review_idx on public.cards (user_id, next_review_at);
 
 create table if not exists public.tags (
   id text primary key default gen_random_uuid()::text,

@@ -26,7 +26,9 @@ async function loadDeck(supabase: any, deckId: string, userId: string) {
 
   const { data: cardRows, error: cardError } = await supabase
     .from('cards')
-    .select('id, deck_id, term, meaning, tags, is_unfamiliar, created_at')
+    .select(
+      'id, deck_id, term, meaning, tags, is_unfamiliar, mastery_level, last_reviewed_at, next_review_at, created_at'
+    )
     .eq('deck_id', deckId)
     .eq('user_id', userId)
     .order('created_at', { ascending: true });

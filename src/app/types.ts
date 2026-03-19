@@ -4,6 +4,9 @@ export interface Card {
   meaning: string;
   tags: string[];
   isUnfamiliar: boolean;
+  masteryLevel: 0 | 1 | 2 | 3;
+  lastReviewedAt: string | null;
+  nextReviewAt: string | null;
 }
 
 export interface Deck {

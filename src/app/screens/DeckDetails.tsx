@@ -105,6 +105,9 @@ export function DeckDetails({ deck, onUpdateDeck, onOpenImport }: DeckDetailsPro
       meaning: newMeaning.trim(),
       tags: newTags.split(',').map((t) => t.trim()).filter(Boolean),
       isUnfamiliar: false,
+      masteryLevel: 0,
+      lastReviewedAt: null,
+      nextReviewAt: null,
     };
 
     setIsAddingCardSubmitting(true);

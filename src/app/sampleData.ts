@@ -13,6 +13,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Hello',
         tags: ['greetings', 'basics'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-2',
@@ -20,6 +23,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Thank you',
         tags: ['greetings', 'basics'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-3',
@@ -27,6 +33,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Please',
         tags: ['greetings', 'basics'],
         isUnfamiliar: true,
+        masteryLevel: 1,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-4',
@@ -34,6 +43,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Goodbye',
         tags: ['greetings'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-5',
@@ -41,6 +53,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'How are you?',
         tags: ['questions', 'greetings'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
     ],
   },
@@ -56,6 +71,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'A function that has access to variables in its outer scope, even after the outer function has returned',
         tags: ['programming', 'concepts'],
         isUnfamiliar: true,
+        masteryLevel: 1,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-7',
@@ -63,6 +81,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'An object representing the eventual completion or failure of an asynchronous operation',
         tags: ['programming', 'async'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-8',
@@ -70,6 +91,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'A concise syntax for writing function expressions using => syntax',
         tags: ['programming', 'syntax'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
     ],
   },
@@ -85,6 +109,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Paris',
         tags: ['geography', 'europe'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-10',
@@ -92,6 +119,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Tokyo',
         tags: ['geography', 'asia'],
         isUnfamiliar: false,
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-11',
@@ -99,6 +129,9 @@ export const sampleDecks: Deck[] = [
         meaning: 'Brasília',
         tags: ['geography', 'south-america'],
         isUnfamiliar: true,
+        masteryLevel: 1,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
       {
         id: 'card-12',
@@ -106,7 +139,12 @@ export const sampleDecks: Deck[] = [
         meaning: 'Canberra',
         tags: ['geography', 'oceania'],
         isUnfamiliar: true,
+        masteryLevel: 1,
+        lastReviewedAt: null,
+        nextReviewAt: null,
       },
     ],
   },
 ];
+
+

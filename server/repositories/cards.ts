@@ -18,6 +18,9 @@ export interface CardRecord {
   normalized_term: string;
   tags: string[];
   is_unfamiliar: boolean;
+  mastery_level: 0 | 1 | 2 | 3;
+  last_reviewed_at: string | null;
+  next_review_at: string | null;
 }
 
 export async function listCardsByDeck(
@@ -28,7 +31,7 @@ export async function listCardsByDeck(
   const { data, error } = await supabase
     .from('cards')
     .select(
-      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar'
+      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar, mastery_level, last_reviewed_at, next_review_at'
     )
     .eq('user_id', userId)
     .eq('deck_id', deckId)
@@ -66,7 +69,7 @@ export async function insertCardsIgnoreDuplicates(
       ignoreDuplicates: true,
     })
     .select(
-      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar'
+      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar, mastery_level, last_reviewed_at, next_review_at'
     );
 
   if (error) {
@@ -85,6 +88,30 @@ export async function setCardUnfamiliar(
   const { error } = await supabase
     .from('cards')
     .update({ is_unfamiliar: isUnfamiliar })
+    .eq('id', cardId)
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function setCardMastery(
+  supabase: any,
+  userId: string,
+  cardId: string,
+  masteryLevel: 0 | 1 | 2 | 3,
+  lastReviewedAt: string | null,
+  nextReviewAt: string | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('cards')
+    .update({
+      mastery_level: masteryLevel,
+      last_reviewed_at: lastReviewedAt,
+      next_review_at: nextReviewAt,
+      is_unfamiliar: masteryLevel === 1,
+    })
     .eq('id', cardId)
     .eq('user_id', userId);
 

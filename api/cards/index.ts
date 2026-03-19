@@ -107,6 +107,9 @@ export default async function handler(req: any, res: any) {
           term: card.term,
           meaning: card.meaning,
           isUnfamiliar: card.is_unfamiliar,
+          masteryLevel: card.mastery_level,
+          lastReviewedAt: card.last_reviewed_at,
+          nextReviewAt: card.next_review_at,
           tags:
             (tagIdsByCardId.get(card.id) ?? []).length > 0
               ? (tagIdsByCardId.get(card.id) ?? [])
@@ -185,6 +188,9 @@ export default async function handler(req: any, res: any) {
         term: created.term,
         meaning: created.meaning,
         isUnfamiliar: created.is_unfamiliar,
+        masteryLevel: created.mastery_level,
+        lastReviewedAt: created.last_reviewed_at,
+        nextReviewAt: created.next_review_at,
         tags,
       },
     });

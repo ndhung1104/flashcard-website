@@ -17,6 +17,9 @@ const sampleDeck: Deck = {
       meaning: 'Basic unit of life',
       tags: ['bio', 'chapter1'],
       isUnfamiliar: false,
+      masteryLevel: 0,
+      lastReviewedAt: null,
+      nextReviewAt: null,
     },
   ],
 };

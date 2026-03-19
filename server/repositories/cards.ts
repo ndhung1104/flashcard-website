@@ -44,6 +44,27 @@ export async function listCardsByDeck(
   return (data ?? []) as CardRecord[];
 }
 
+export async function getCardById(
+  supabase: any,
+  userId: string,
+  cardId: string
+): Promise<CardRecord | null> {
+  const { data, error } = await supabase
+    .from('cards')
+    .select(
+      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar, mastery_level, last_reviewed_at, next_review_at'
+    )
+    .eq('user_id', userId)
+    .eq('id', cardId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as CardRecord | null) ?? null;
+}
+
 export async function insertCardsIgnoreDuplicates(
   supabase: any,
   cards: CreateCardInput[]

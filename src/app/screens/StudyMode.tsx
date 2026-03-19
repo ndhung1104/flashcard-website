@@ -1,42 +1,97 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
-import { ChevronLeft, ChevronRight, X, Star, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import { ChevronLeft, ChevronRight, Loader2, RotateCcw, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { Deck } from '../types';
 
 interface StudyModeProps {
   deck: Deck | undefined;
-  onUpdateDeck: (deckId: string, updates: Partial<Deck>) => Promise<void> | void;
+  learnQueue?: string[];
+  onApplyMasteryAction: (
+    cardId: string,
+    action: 'relearn' | 'known'
+  ) => Promise<void> | void;
 }
 
-export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
+export function StudyMode({
+  deck,
+  learnQueue,
+  onApplyMasteryAction,
+}: StudyModeProps) {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSavingCard, setIsSavingCard] = useState(false);
+  const [sessionQueueIds, setSessionQueueIds] = useState<string[]>([]);
 
-  // Keyboard navigation
+  const cardById = useMemo(
+    () => new Map((deck?.cards ?? []).map((card) => [card.id, card])),
+    [deck?.cards]
+  );
+
+  const initialQueueIds = useMemo(() => {
+    if (!deck) {
+      return [] as string[];
+    }
+
+    if (Array.isArray(learnQueue) && learnQueue.length > 0) {
+      return learnQueue.filter((id) => cardById.has(id));
+    }
+
+    return deck.cards.map((card) => card.id);
+  }, [deck, learnQueue, cardById]);
+
+  useEffect(() => {
+    setSessionQueueIds(initialQueueIds);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }, [initialQueueIds]);
+
+  const activeCards = useMemo(
+    () => sessionQueueIds.map((id) => cardById.get(id)).filter(Boolean),
+    [sessionQueueIds, cardById]
+  );
+
+  const currentCard = activeCards[currentIndex];
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      if (!currentCard) return;
+
       if (e.key === 'ArrowLeft') {
-        handlePrevious();
+        setCurrentIndex((prev) => Math.max(0, prev - 1));
+        setIsFlipped(false);
       } else if (e.key === 'ArrowRight') {
-        handleNext();
+        setCurrentIndex((prev) => Math.min(activeCards.length - 1, prev + 1));
+        setIsFlipped(false);
       } else if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         setIsFlipped((prev) => !prev);
       } else if (e.key === 'Escape') {
-        handleExit();
+        navigate(`/deck/${deckId}`);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentIndex, deck]);
+  }, [activeCards.length, currentCard, deckId, navigate]);
 
-  if (!deck || !deckId || deck.cards.length === 0) {
+  if (!deck || !deckId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Deck not found</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (deck.cards.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -49,43 +104,82 @@ export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
     );
   }
 
-  const currentCard = deck.cards[currentIndex];
-  const progress = ((currentIndex + 1) / deck.cards.length) * 100;
-
-  const handleNext = () => {
-    if (currentIndex < deck.cards.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setIsFlipped(false);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      setIsFlipped(false);
-    }
-  };
-
-  const toggleUnfamiliar = async () => {
-    if (isSavingCard) return;
-    const updatedCards = deck.cards.map((card) =>
-      card.id === currentCard.id ? { ...card, isUnfamiliar: !card.isUnfamiliar } : card
+  if (activeCards.length === 0 || !currentCard) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-sm px-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">–?t h?c d„ xong</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            C·c th? level cao d„ du?c ?n t?m th?i. B?n cÛ th? quay l?i deck ho?c v‡o quiz.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" onClick={() => navigate(`/deck/${deckId}`)}>
+              V? Deck
+            </Button>
+            <Button onClick={() => navigate(`/quiz/${deckId}`)}>Qua Quiz</Button>
+          </div>
+        </div>
+      </div>
     );
-    setIsSavingCard(true);
-    try {
-      await onUpdateDeck(deckId, { cards: updatedCards });
-    } finally {
-      setIsSavingCard(false);
-    }
-  };
+  }
+
+  const progress = ((currentIndex + 1) / activeCards.length) * 100;
 
   const handleExit = () => {
     navigate(`/deck/${deckId}`);
   };
 
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+    setIsFlipped(false);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => Math.min(activeCards.length - 1, prev + 1));
+    setIsFlipped(false);
+  };
+
+  const handleMasteryAction = async (action: 'relearn' | 'known') => {
+    if (isSavingCard || !currentCard) {
+      return;
+    }
+
+    setIsSavingCard(true);
+    try {
+      await onApplyMasteryAction(currentCard.id, action);
+
+      setSessionQueueIds((previous) => {
+        const next = [...previous];
+        const idx = next.indexOf(currentCard.id);
+        if (idx === -1) {
+          return previous;
+        }
+
+        next.splice(idx, 1);
+
+        if (action === 'relearn') {
+          next.push(currentCard.id);
+        }
+
+        return next;
+      });
+
+      setCurrentIndex((prev) => {
+        if (action === 'known') {
+          const nextLength = activeCards.length - 1;
+          return Math.max(0, Math.min(prev, nextLength - 1));
+        }
+
+        return prev;
+      });
+      setIsFlipped(false);
+    } finally {
+      setIsSavingCard(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
@@ -97,19 +191,21 @@ export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
             </button>
             <h1 className="font-medium text-sm">{deck.title}</h1>
             <span className="text-sm text-gray-600">
-              {currentIndex + 1} / {deck.cards.length}
+              {currentIndex + 1} / {activeCards.length}
             </span>
           </div>
           <Progress value={progress} className="h-1" />
         </div>
       </header>
 
-      {/* Flashcard */}
-      <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-140px)]">
+      <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="w-full max-w-md">
+          <p className="text-center text-xs text-gray-500 mb-4">
+            B?n nhÏn "T? v?ng" ? t? nh?m "–?nh nghia" trong d?u
+          </p>
           <div
-            onClick={() => setIsFlipped(!isFlipped)}
-            className="relative w-full aspect-[3/2] cursor-pointer group"
+            onClick={() => setIsFlipped((prev) => !prev)}
+            className="relative w-full aspect-[3/2] cursor-pointer"
             style={{ perspective: '1000px' }}
           >
             <div
@@ -118,72 +214,57 @@ export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
               }`}
               style={{ transformStyle: 'preserve-3d' }}
             >
-              {/* Front */}
               <div
                 className="absolute inset-0 bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center justify-center"
                 style={{ backfaceVisibility: 'hidden' }}
               >
-                <p className="text-xs uppercase text-gray-500 mb-4">Term</p>
+                <p className="text-xs uppercase text-gray-500 mb-4">T? v?ng</p>
                 <p className="text-2xl font-medium text-center">{currentCard.term}</p>
-                <p className="text-xs text-gray-400 mt-6">Tap to flip</p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void toggleUnfamiliar();
-                  }}
-                  disabled={isSavingCard}
-                  className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
-                >
-                  {isSavingCard ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                  ) : (
-                    <Star
-                      className={`w-5 h-5 ${
-                        currentCard.isUnfamiliar
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-400'
-                      }`}
-                    />
-                  )}
-                </button>
+                <p className="text-xs text-gray-400 mt-6">Click/Tap d? l?t th?</p>
               </div>
 
-              {/* Back */}
               <div
                 className="absolute inset-0 bg-blue-600 rounded-2xl shadow-2xl p-8 flex flex-col items-center justify-center text-white"
-                style={{
-                  backfaceVisibility: 'hidden',
-                  transform: 'rotateY(180deg)',
-                }}
+                style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
-                <p className="text-xs uppercase opacity-80 mb-4">Meaning</p>
+                <p className="text-xs uppercase opacity-80 mb-4">–?nh nghia</p>
                 <p className="text-xl text-center">{currentCard.meaning}</p>
-                <p className="text-xs opacity-60 mt-6">Tap to flip back</p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void toggleUnfamiliar();
-                  }}
-                  disabled={isSavingCard}
-                  className="absolute top-4 right-4 p-2 hover:bg-blue-500 rounded-full transition-colors disabled:opacity-50"
-                >
-                  {isSavingCard ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-white opacity-80" />
-                  ) : (
-                    <Star
-                      className={`w-5 h-5 ${
-                        currentCard.isUnfamiliar
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-white opacity-60'
-                      }`}
-                    />
-                  )}
-                </button>
+                <p className="text-xs opacity-60 mt-6">Tap d? l?t l?i</p>
               </div>
             </div>
           </div>
 
-          {/* Tags */}
+          {isFlipped ? (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => void handleMasteryAction('relearn')}
+                disabled={isSavingCard}
+                className="h-11"
+              >
+                {isSavingCard ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    ? H?c l?i (Chua thu?c)
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => void handleMasteryAction('known')}
+                disabled={isSavingCard}
+                className="h-11"
+              >
+                {isSavingCard ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  '? –„ bi?t (Thu?c)'
+                )}
+              </Button>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
             {currentCard.tags.map((tag) => (
               <span
@@ -197,13 +278,12 @@ export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
         </div>
       </main>
 
-      {/* Navigation */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t py-4">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between mb-2">
             <Button
               onClick={handlePrevious}
-              disabled={currentIndex === 0}
+              disabled={currentIndex === 0 || isSavingCard}
               size="lg"
               variant="outline"
               className="flex-1 max-w-[140px]"
@@ -212,11 +292,11 @@ export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
               Previous
             </Button>
             <span className="text-sm text-gray-600 px-4">
-              {currentIndex + 1} of {deck.cards.length}
+              {currentIndex + 1} of {activeCards.length}
             </span>
             <Button
               onClick={handleNext}
-              disabled={currentIndex === deck.cards.length - 1}
+              disabled={currentIndex === activeCards.length - 1 || isSavingCard}
               size="lg"
               className="flex-1 max-w-[140px]"
             >
@@ -225,7 +305,7 @@ export function StudyMode({ deck, onUpdateDeck }: StudyModeProps) {
             </Button>
           </div>
           <p className="text-xs text-center text-gray-400 hidden sm:block">
-            Use ‚Üê ‚Üí to navigate ‚Ä¢ Space/Enter to flip ‚Ä¢ Esc to exit
+            Use ? ? to navigate ï Space/Enter to flip ï Esc to exit
           </p>
         </div>
       </footer>

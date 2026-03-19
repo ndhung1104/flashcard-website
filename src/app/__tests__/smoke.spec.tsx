@@ -71,7 +71,13 @@ describe('app smoke screens', () => {
         <Routes>
           <Route
             path="/study/:deckId"
-            element={<StudyMode deck={sampleDeck} onUpdateDeck={async () => {}} />}
+            element={
+              <StudyMode
+                deck={sampleDeck}
+                learnQueue={['card-1']}
+                onApplyMasteryAction={async () => {}}
+              />
+            }
           />
         </Routes>
       </MemoryRouter>

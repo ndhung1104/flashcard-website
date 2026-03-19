@@ -4,6 +4,7 @@ import { DeckDetails } from './screens/DeckDetails';
 import { StudyMode } from './screens/StudyMode';
 import { useDecks } from './hooks/useDecks';
 import { useCards } from './hooks/useCards';
+import { useLearnEngine } from './hooks/useLearnEngine';
 import { useState } from 'react';
 import { CreateDeckModal } from './components/CreateDeckModal';
 import { ImportModal } from './components/ImportModal';
@@ -104,20 +105,27 @@ function DeckDetailsWrapper() {
 function StudyModeWrapper() {
   const { deckId } = useParams();
   const { getDeck, isLoading } = useDecks();
-  const { cards, isLoading: isLoadingCards, syncCards } = useCards(deckId);
+  const { cards, isLoading: isLoadingCards, applyMasteryAction } = useCards(deckId);
+  const {
+    queue: learnQueue,
+    isLoading: isLoadingLearnQueue,
+    refreshQueue,
+  } = useLearnEngine(deckId);
 
   const deckMetadata = deckId ? getDeck(deckId) : undefined;
   const deckWithCards = deckMetadata
     ? ({ ...deckMetadata, cards } as Deck)
     : undefined;
 
-  const handleUpdateDeck = async (_id: string, updates: Partial<Deck>) => {
-    if (Array.isArray(updates.cards)) {
-      await syncCards(updates.cards);
-    }
+  const handleApplyMasteryAction = async (
+    cardId: string,
+    action: 'relearn' | 'known'
+  ) => {
+    await applyMasteryAction(cardId, action);
+    await refreshQueue();
   };
 
-  if (isLoading || isLoadingCards) {
+  if (isLoading || isLoadingCards || isLoadingLearnQueue) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-sm text-gray-500">Loading study mode...</p>
@@ -125,7 +133,13 @@ function StudyModeWrapper() {
     );
   }
 
-  return <StudyMode deck={deckWithCards} onUpdateDeck={handleUpdateDeck} />;
+  return (
+    <StudyMode
+      deck={deckWithCards}
+      learnQueue={learnQueue}
+      onApplyMasteryAction={handleApplyMasteryAction}
+    />
+  );
 }
 
 export const router = createBrowserRouter([

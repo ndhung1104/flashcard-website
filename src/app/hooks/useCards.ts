@@ -10,6 +10,13 @@ interface CardResponse {
   card: Card;
 }
 
+interface MasteryResponse {
+  cardId: string;
+  masteryLevel: 0 | 1 | 2 | 3;
+  lastReviewedAt: string;
+  nextReviewAt: string | null;
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     credentials: 'include',
@@ -130,11 +137,24 @@ export function useCards(deckId: string | undefined) {
     [cards, deckId, refreshCards]
   );
 
+  const applyMasteryAction = useCallback(
+    async (cardId: string, action: 'relearn' | 'known') => {
+      await requestJson<MasteryResponse>(`/api/cards/${cardId}/mastery`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action }),
+      });
+
+      await refreshCards();
+    },
+    [refreshCards]
+  );
+
   return {
     cards,
     isLoading,
     isSyncing,
     refreshCards,
     syncCards,
+    applyMasteryAction,
   };
 }

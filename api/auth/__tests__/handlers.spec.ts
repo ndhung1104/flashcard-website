@@ -1,11 +1,18 @@
-import loginHandler from '../login';
-import signupHandler from '../signup';
-import meHandler from '../me';
-import logoutHandler from '../logout';
+import authHandler from '../[action]';
 import * as supabaseModule from '../../../server/supabase.js';
 import * as authModule from '../../../server/auth.js';
 import * as cookiesModule from '../../../server/cookies.js';
 import { createMockReq, createMockRes } from '../../__tests__/test-utils';
+
+function createAuthReq(
+  action: 'login' | 'signup' | 'me' | 'logout',
+  overrides: Record<string, unknown> = {}
+) {
+  return createMockReq({
+    query: { action },
+    ...overrides,
+  });
+}
 
 describe('auth handlers', () => {
   beforeEach(() => {
@@ -36,7 +43,7 @@ describe('auth handlers', () => {
       .spyOn(cookiesModule, 'setAuthCookies')
       .mockImplementation(() => {});
 
-    const req = createMockReq({
+    const req = createAuthReq('login', {
       method: 'POST',
       body: {
         email: 'USER@example.com ',
@@ -45,7 +52,7 @@ describe('auth handlers', () => {
     });
     const res = createMockRes();
 
-    await loginHandler(req, res);
+    await authHandler(req, res);
 
     expect(signInWithPassword).toHaveBeenCalledWith({
       email: 'user@example.com',
@@ -72,13 +79,13 @@ describe('auth handlers', () => {
       auth: { signInWithPassword },
     } as any);
 
-    const req = createMockReq({
+    const req = createAuthReq('login', {
       method: 'POST',
       body: { email: 'user@example.com', password: 'wrong' },
     });
     const res = createMockRes();
 
-    await loginHandler(req, res);
+    await authHandler(req, res);
 
     expect(res.statusCode).toBe(401);
     expect(res.getJson()).toEqual({
@@ -111,13 +118,13 @@ describe('auth handlers', () => {
       .spyOn(cookiesModule, 'setAuthCookies')
       .mockImplementation(() => {});
 
-    const req = createMockReq({
+    const req = createAuthReq('signup', {
       method: 'POST',
       body: { email: 'new@example.com', password: 'secret-123' },
     });
     const res = createMockRes();
 
-    await signupHandler(req, res);
+    await authHandler(req, res);
 
     expect(setCookiesSpy).toHaveBeenCalledTimes(1);
     expect(res.statusCode).toBe(200);
@@ -138,10 +145,10 @@ describe('auth handlers', () => {
       accessToken: 'access-token',
     });
 
-    const req = createMockReq({ method: 'GET' });
+    const req = createAuthReq('me', { method: 'GET' });
     const res = createMockRes();
 
-    await meHandler(req, res);
+    await authHandler(req, res);
 
     expect(res.statusCode).toBe(200);
     expect(res.getJson()).toEqual({
@@ -158,10 +165,10 @@ describe('auth handlers', () => {
       .spyOn(cookiesModule, 'clearAuthCookies')
       .mockImplementation(() => {});
 
-    const req = createMockReq({ method: 'POST' });
+    const req = createAuthReq('logout', { method: 'POST' });
     const res = createMockRes();
 
-    await logoutHandler(req, res);
+    await authHandler(req, res);
 
     expect(clearCookiesSpy).toHaveBeenCalledTimes(1);
     expect(res.statusCode).toBe(200);

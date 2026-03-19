@@ -1,6 +1,5 @@
 import decksHandler from '../decks/index';
-import loginHandler from '../auth/login';
-import meHandler from '../auth/me';
+import authHandler from '../auth/[action]';
 import { createMockReq, createMockRes } from './test-utils';
 
 describe('API contracts baseline', () => {
@@ -8,7 +7,8 @@ describe('API contracts baseline', () => {
     const req = createMockReq({ method: 'POST', body: {} });
     const res = createMockRes();
 
-    await loginHandler(req, res);
+    req.query = { action: 'login' };
+    await authHandler(req, res);
 
     expect(res.statusCode).toBe(400);
     expect(res.getJson()).toEqual({
@@ -21,7 +21,8 @@ describe('API contracts baseline', () => {
     const req = createMockReq({ method: 'GET' });
     const res = createMockRes();
 
-    await meHandler(req, res);
+    req.query = { action: 'me' };
+    await authHandler(req, res);
 
     expect(res.statusCode).toBe(401);
     expect(res.getJson()).toEqual({

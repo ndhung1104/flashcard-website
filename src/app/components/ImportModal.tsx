@@ -5,24 +5,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { SampleCSVButton } from './SampleCSVButton';
-import { Card, ImportResult } from '../types';
-import { parseFile, importCards } from '../utils/import';
+import { ImportResult } from '../types';
+import { useImport } from '../hooks/useImport';
 
 interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  existingCards: Card[];
-  onImport: (cards: Card[]) => Promise<void> | void;
+  deckId: string;
+  onImported: () => Promise<void> | void;
 }
 
-export function ImportModal({ isOpen, onClose, existingCards, onImport }: ImportModalProps) {
+export function ImportModal({ isOpen, onClose, deckId, onImported }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [defaultTag, setDefaultTag] = useState('imported');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isImporting, importFile } = useImport();
 
   const handleFileSelect = (selectedFile: File) => {
     if (!selectedFile.name.match(/\.(csv|xlsx)$/i)) {
@@ -48,22 +48,23 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
   const handleUpload = async () => {
     if (!file) return;
 
-    setIsProcessing(true);
     setError(null);
 
     try {
-      const rows = await parseFile(file);
-      const { cards, result: importResult } = importCards(rows, existingCards, defaultTag);
+      const report = await importFile({
+        deckId,
+        defaultTag,
+        file,
+      });
 
-      setResult(importResult);
+      setResult(report);
 
-      if (importResult.inserted > 0) {
-        await onImport(cards);
+      if (report.inserted > 0) {
+        await onImported();
       }
     } catch (err) {
-      setError('Failed to process file. Please check the format and try again.');
-    } finally {
-      setIsProcessing(false);
+      const message = err instanceof Error ? err.message : 'Failed to import file';
+      setError(message);
     }
   };
 
@@ -79,7 +80,7 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!isProcessing && !open) {
+        if (!isImporting && !open) {
           handleClose();
         }
       }}
@@ -90,7 +91,6 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Upload Area */}
           {!result && (
             <>
               <div
@@ -131,7 +131,7 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
                         e.stopPropagation();
                         setFile(null);
                       }}
-                      disabled={isProcessing}
+                      disabled={isImporting}
                       className="ml-2 p-1 hover:bg-gray-100 rounded"
                     >
                       <X className="w-4 h-4" />
@@ -153,7 +153,6 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
                 </Alert>
               )}
 
-              {/* Default Tag */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Default Tag</label>
                 <Select value={defaultTag} onValueChange={setDefaultTag}>
@@ -168,11 +167,10 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Applied to cards without tags in the file
+                  Applied as default tag for imported cards
                 </p>
               </div>
 
-              {/* Format Info */}
               <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-medium">Expected format:</p>
@@ -183,19 +181,17 @@ export function ImportModal({ isOpen, onClose, existingCards, onImport }: Import
                 <p className="mt-1 text-gray-500">First row should contain column headers</p>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
+                <Button variant="outline" onClick={handleClose} disabled={isImporting}>
                   Cancel
                 </Button>
-                <Button onClick={handleUpload} disabled={!file || isProcessing}>
-                  {isProcessing ? 'Processing...' : 'Upload'}
+                <Button onClick={handleUpload} disabled={!file || isImporting}>
+                  {isImporting ? 'Uploading...' : 'Upload'}
                 </Button>
               </div>
             </>
           )}
 
-          {/* Import Result */}
           {result && (
             <div className="space-y-4">
               <div className="flex items-center justify-center text-green-600 mb-4">

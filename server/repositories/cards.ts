@@ -5,6 +5,7 @@ export interface CreateCardInput {
   deckId: string;
   term: string;
   meaning: string;
+  tags?: string[];
   isUnfamiliar?: boolean;
 }
 
@@ -15,6 +16,7 @@ export interface CardRecord {
   term: string;
   meaning: string;
   normalized_term: string;
+  tags: string[];
   is_unfamiliar: boolean;
 }
 
@@ -25,7 +27,9 @@ export async function listCardsByDeck(
 ): Promise<CardRecord[]> {
   const { data, error } = await supabase
     .from('cards')
-    .select('id, user_id, deck_id, term, meaning, normalized_term, is_unfamiliar')
+    .select(
+      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar'
+    )
     .eq('user_id', userId)
     .eq('deck_id', deckId)
     .order('created_at', { ascending: true });
@@ -51,6 +55,7 @@ export async function insertCardsIgnoreDuplicates(
     term: card.term.trim(),
     meaning: card.meaning.trim(),
     normalized_term: normalizeTerm(card.term),
+    tags: Array.isArray(card.tags) ? card.tags : [],
     is_unfamiliar: Boolean(card.isUnfamiliar),
   }));
 
@@ -60,7 +65,9 @@ export async function insertCardsIgnoreDuplicates(
       onConflict: 'user_id,deck_id,normalized_term',
       ignoreDuplicates: true,
     })
-    .select('id, user_id, deck_id, term, meaning, normalized_term, is_unfamiliar');
+    .select(
+      'id, user_id, deck_id, term, meaning, normalized_term, tags, is_unfamiliar'
+    );
 
   if (error) {
     throw new Error(error.message);

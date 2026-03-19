@@ -66,16 +66,21 @@ export default async function handler(req: any, res: any) {
         new Set((cardTagRows ?? []).map((row: any) => String(row.tag_id)))
       );
 
-      const { data: tagRows, error: tagError } = await supabase
-        .from('tags')
-        .select('id, name')
-        .eq('user_id', auth.userId)
-        .eq('deck_id', deckId)
-        .in('id', tagIds.length > 0 ? tagIds : ['']);
+      let tagRows: any[] = [];
+      if (tagIds.length > 0) {
+        const { data: rows, error: tagError } = await supabase
+          .from('tags')
+          .select('id, name')
+          .eq('user_id', auth.userId)
+          .eq('deck_id', deckId)
+          .in('id', tagIds);
 
-      if (tagError) {
-        sendJson(res, 500, { error: tagError.message, code: 'CARDS_TAG_FETCH_FAILED' });
-        return;
+        if (tagError) {
+          sendJson(res, 500, { error: tagError.message, code: 'CARDS_TAG_FETCH_FAILED' });
+          return;
+        }
+
+        tagRows = rows ?? [];
       }
 
       const tagNameById = new Map(
@@ -102,9 +107,14 @@ export default async function handler(req: any, res: any) {
           term: card.term,
           meaning: card.meaning,
           isUnfamiliar: card.is_unfamiliar,
-          tags: (tagIdsByCardId.get(card.id) ?? [])
-            .map((id) => tagNameById.get(id))
-            .filter(Boolean),
+          tags:
+            (tagIdsByCardId.get(card.id) ?? []).length > 0
+              ? (tagIdsByCardId.get(card.id) ?? [])
+                  .map((id) => tagNameById.get(id))
+                  .filter(Boolean)
+              : Array.isArray(card.tags)
+              ? card.tags
+              : [],
         })),
       });
       return;
@@ -132,6 +142,7 @@ export default async function handler(req: any, res: any) {
         deckId,
         term,
         meaning,
+        tags,
         isUnfamiliar: false,
       } satisfies CreateCardInput,
     ]);

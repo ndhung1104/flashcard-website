@@ -3,10 +3,11 @@ import { Dashboard } from './screens/Dashboard';
 import { DeckDetails } from './screens/DeckDetails';
 import { StudyMode } from './screens/StudyMode';
 import { useDecks } from './hooks/useDecks';
+import { useCards } from './hooks/useCards';
 import { useState } from 'react';
 import { CreateDeckModal } from './components/CreateDeckModal';
 import { ImportModal } from './components/ImportModal';
-import { Card } from './types';
+import { Deck } from './types';
 import { useAuth } from './context/AuthContext';
 
 function Root() {
@@ -34,22 +35,41 @@ function Root() {
 function DeckDetailsWrapper() {
   const { deckId } = useParams();
   const { getDeck, updateDeck, isLoading } = useDecks();
+  const {
+    cards,
+    isLoading: isLoadingCards,
+    syncCards,
+    refreshCards,
+    isSyncing,
+  } = useCards(deckId);
   const [importDeckId, setImportDeckId] = useState<string | null>(null);
-  
-  const handleImport = async (newCards: Card[]) => {
-    try {
-      if (deckId) {
-        const deck = getDeck(deckId);
-        if (deck) {
-          await updateDeck(deckId, { cards: [...deck.cards, ...newCards] });
-        }
-      }
-    } finally {
-      setImportDeckId(null);
+
+  const deckMetadata = deckId ? getDeck(deckId) : undefined;
+  const deckWithCards = deckMetadata
+    ? ({ ...deckMetadata, cards } as Deck)
+    : undefined;
+
+  const handleUpdateDeck = async (id: string, updates: Partial<Deck>) => {
+    const metadataUpdates: Partial<Deck> = {};
+
+    if (typeof updates.title === 'string') {
+      metadataUpdates.title = updates.title;
+    }
+
+    if (typeof updates.description === 'string') {
+      metadataUpdates.description = updates.description;
+    }
+
+    if (Object.keys(metadataUpdates).length > 0) {
+      await updateDeck(id, metadataUpdates);
+    }
+
+    if (Array.isArray(updates.cards)) {
+      await syncCards(updates.cards);
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingCards) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-sm text-gray-500">Loading deck...</p>
@@ -60,40 +80,52 @@ function DeckDetailsWrapper() {
   return (
     <>
       <DeckDetails
-        deck={deckId ? getDeck(deckId) : undefined}
-        onUpdateDeck={updateDeck}
+        deck={deckWithCards}
+        onUpdateDeck={handleUpdateDeck}
         onOpenImport={() => setImportDeckId(deckId || null)}
       />
       {importDeckId && (
         <ImportModal
           isOpen={true}
           onClose={() => setImportDeckId(null)}
-          existingCards={getDeck(importDeckId)?.cards || []}
-          onImport={handleImport}
+          deckId={importDeckId}
+          onImported={refreshCards}
         />
       )}
+      {isSyncing ? (
+        <div className="fixed bottom-4 right-4 rounded-full bg-black text-white text-xs px-3 py-2 opacity-80">
+          Syncing...
+        </div>
+      ) : null}
     </>
   );
 }
 
 function StudyModeWrapper() {
   const { deckId } = useParams();
-  const { getDeck, updateDeck, isLoading } = useDecks();
+  const { getDeck, isLoading } = useDecks();
+  const { cards, isLoading: isLoadingCards, syncCards } = useCards(deckId);
 
-  if (isLoading) {
+  const deckMetadata = deckId ? getDeck(deckId) : undefined;
+  const deckWithCards = deckMetadata
+    ? ({ ...deckMetadata, cards } as Deck)
+    : undefined;
+
+  const handleUpdateDeck = async (_id: string, updates: Partial<Deck>) => {
+    if (Array.isArray(updates.cards)) {
+      await syncCards(updates.cards);
+    }
+  };
+
+  if (isLoading || isLoadingCards) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-sm text-gray-500">Loading study mode...</p>
       </div>
     );
   }
-  
-  return (
-    <StudyMode
-      deck={deckId ? getDeck(deckId) : undefined}
-      onUpdateDeck={updateDeck}
-    />
-  );
+
+  return <StudyMode deck={deckWithCards} onUpdateDeck={handleUpdateDeck} />;
 }
 
 export const router = createBrowserRouter([

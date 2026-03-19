@@ -120,6 +120,7 @@ export async function runImport(input: RunImportInput): Promise<ImportSummary> {
       deckId: input.deckId,
       term: row.term,
       meaning: row.meaning,
+      tags: row.tags,
       isUnfamiliar: false,
     }))
   );

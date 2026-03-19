@@ -1,0 +1,112 @@
+import { Deck } from './types';
+
+export const sampleDecks: Deck[] = [
+  {
+    id: 'sample-1',
+    title: 'Spanish Basics',
+    description: 'Common Spanish words and phrases for beginners',
+    createdAt: Date.now() - 86400000 * 2,
+    cards: [
+      {
+        id: 'card-1',
+        term: 'Hola',
+        meaning: 'Hello',
+        tags: ['greetings', 'basics'],
+        isUnfamiliar: false,
+      },
+      {
+        id: 'card-2',
+        term: 'Gracias',
+        meaning: 'Thank you',
+        tags: ['greetings', 'basics'],
+        isUnfamiliar: false,
+      },
+      {
+        id: 'card-3',
+        term: 'Por favor',
+        meaning: 'Please',
+        tags: ['greetings', 'basics'],
+        isUnfamiliar: true,
+      },
+      {
+        id: 'card-4',
+        term: 'Adiós',
+        meaning: 'Goodbye',
+        tags: ['greetings'],
+        isUnfamiliar: false,
+      },
+      {
+        id: 'card-5',
+        term: '¿Cómo estás?',
+        meaning: 'How are you?',
+        tags: ['questions', 'greetings'],
+        isUnfamiliar: false,
+      },
+    ],
+  },
+  {
+    id: 'sample-2',
+    title: 'JavaScript Fundamentals',
+    description: 'Essential JavaScript concepts and definitions',
+    createdAt: Date.now() - 86400000,
+    cards: [
+      {
+        id: 'card-6',
+        term: 'Closure',
+        meaning: 'A function that has access to variables in its outer scope, even after the outer function has returned',
+        tags: ['programming', 'concepts'],
+        isUnfamiliar: true,
+      },
+      {
+        id: 'card-7',
+        term: 'Promise',
+        meaning: 'An object representing the eventual completion or failure of an asynchronous operation',
+        tags: ['programming', 'async'],
+        isUnfamiliar: false,
+      },
+      {
+        id: 'card-8',
+        term: 'Arrow Function',
+        meaning: 'A concise syntax for writing function expressions using => syntax',
+        tags: ['programming', 'syntax'],
+        isUnfamiliar: false,
+      },
+    ],
+  },
+  {
+    id: 'sample-3',
+    title: 'World Capitals',
+    description: 'Learn capital cities of countries around the world',
+    createdAt: Date.now() - 86400000 * 5,
+    cards: [
+      {
+        id: 'card-9',
+        term: 'France',
+        meaning: 'Paris',
+        tags: ['geography', 'europe'],
+        isUnfamiliar: false,
+      },
+      {
+        id: 'card-10',
+        term: 'Japan',
+        meaning: 'Tokyo',
+        tags: ['geography', 'asia'],
+        isUnfamiliar: false,
+      },
+      {
+        id: 'card-11',
+        term: 'Brazil',
+        meaning: 'Brasília',
+        tags: ['geography', 'south-america'],
+        isUnfamiliar: true,
+      },
+      {
+        id: 'card-12',
+        term: 'Australia',
+        meaning: 'Canberra',
+        tags: ['geography', 'oceania'],
+        isUnfamiliar: true,
+      },
+    ],
+  },
+];

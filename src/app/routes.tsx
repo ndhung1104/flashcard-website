@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, useParams } from 'react-router';
 import { Dashboard } from './screens/Dashboard';
 import { DeckDetails } from './screens/DeckDetails';
+import { QuizMode } from './screens/QuizMode';
 import { StudyMode } from './screens/StudyMode';
 import { useDecks } from './hooks/useDecks';
 import { useCards } from './hooks/useCards';
@@ -142,6 +143,27 @@ function StudyModeWrapper() {
   );
 }
 
+function QuizModeWrapper() {
+  const { deckId } = useParams();
+  const { getDeck, isLoading } = useDecks();
+  const { cards, isLoading: isLoadingCards } = useCards(deckId);
+
+  const deckMetadata = deckId ? getDeck(deckId) : undefined;
+  const deckWithCards = deckMetadata
+    ? ({ ...deckMetadata, cards } as Deck)
+    : undefined;
+
+  if (isLoading || isLoadingCards) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-sm text-gray-500">Loading quiz mode...</p>
+      </div>
+    );
+  }
+
+  return <QuizMode deck={deckWithCards} />;
+}
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -154,6 +176,10 @@ export const router = createBrowserRouter([
   {
     path: '/study/:deckId',
     element: <StudyModeWrapper />,
+  },
+  {
+    path: '/quiz/:deckId',
+    element: <QuizModeWrapper />,
   },
   {
     path: '*',

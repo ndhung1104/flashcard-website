@@ -106,6 +106,11 @@ export function Dashboard({
                         Study
                       </Button>
                     </Link>
+                    <Link to={`/quiz/${deck.id}`}>
+                      <Button variant="outline" size="sm" disabled={deck.cards.length === 0}>
+                        Quiz
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </Card>

@@ -8,32 +8,6 @@ import {
 } from '../../server/http.js';
 import { createUserClient } from '../../server/supabase.js';
 
-function normalizeCardInput(input: unknown) {
-  const card = input && typeof input === 'object' ? (input as any) : {};
-
-  const term = typeof card.term === 'string' ? card.term.trim() : '';
-  const meaning = typeof card.meaning === 'string' ? card.meaning.trim() : '';
-
-  if (!term || !meaning) {
-    return null;
-  }
-
-  return {
-    id:
-      typeof card.id === 'string' && card.id.trim() !== ''
-        ? card.id.trim()
-        : undefined,
-    term,
-    meaning,
-    tags: Array.isArray(card.tags)
-      ? card.tags
-          .map((tag: unknown) => String(tag).trim())
-          .filter(Boolean)
-      : [],
-    is_unfamiliar: Boolean(card.isUnfamiliar),
-  };
-}
-
 async function loadDeck(supabase: any, deckId: string, userId: string) {
   const { data: deckRow, error: deckError } = await supabase
     .from('decks')
@@ -113,6 +87,16 @@ export default async function handler(req: any, res: any) {
     }
 
     const body = await parseJsonBody(req);
+
+    if (Array.isArray(body.cards)) {
+      sendJson(res, 400, {
+        error:
+          'Updating cards through deck PATCH is no longer supported. Use /api/cards endpoints.',
+        code: 'DECK_PATCH_CARDS_NOT_SUPPORTED',
+      });
+      return;
+    }
+
     const updates: Record<string, unknown> = {};
 
     if (typeof body.title === 'string') {
@@ -136,39 +120,6 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    if (Array.isArray(body.cards)) {
-      const { error: deleteCardsError } = await supabase
-        .from('cards')
-        .delete()
-        .eq('deck_id', deckId)
-        .eq('user_id', auth.userId);
-
-      if (deleteCardsError) {
-        sendJson(res, 500, { error: deleteCardsError.message });
-        return;
-      }
-
-      const cardsToInsert = body.cards
-        .map((card: unknown) => normalizeCardInput(card))
-        .filter(Boolean)
-        .map((card: any) => ({
-          ...card,
-          user_id: auth.userId,
-          deck_id: deckId,
-        }));
-
-      if (cardsToInsert.length > 0) {
-        const { error: insertCardsError } = await supabase
-          .from('cards')
-          .insert(cardsToInsert);
-
-        if (insertCardsError) {
-          sendJson(res, 500, { error: insertCardsError.message });
-          return;
-        }
-      }
-    }
-
     const deck = await loadDeck(supabase, deckId, auth.userId);
     if (!deck) {
       sendJson(res, 404, { error: 'Deck not found' });
@@ -182,4 +133,3 @@ export default async function handler(req: any, res: any) {
     sendJson(res, 500, { error: message });
   }
 }
-

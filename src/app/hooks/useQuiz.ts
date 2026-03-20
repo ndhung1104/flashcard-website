@@ -14,7 +14,7 @@ interface QuizNextResponse {
 interface QuizAnswerResponse {
   isCorrect: boolean;
   correctMeaning: string;
-  masteryLevel: 0 | 1 | 2 | 3;
+  masteryLevel: number;
 }
 
 interface QuizStats {

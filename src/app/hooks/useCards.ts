@@ -12,7 +12,7 @@ interface CardResponse {
 
 interface MasteryResponse {
   cardId: string;
-  masteryLevel: 0 | 1 | 2 | 3;
+  masteryLevel: number;
   lastReviewedAt: string;
   nextReviewAt: string | null;
 }
@@ -139,14 +139,25 @@ export function useCards(deckId: string | undefined) {
 
   const applyMasteryAction = useCallback(
     async (cardId: string, action: 'relearn' | 'known') => {
-      await requestJson<MasteryResponse>(`/api/cards/${cardId}/mastery`, {
+      const payload = await requestJson<MasteryResponse>(`/api/cards/${cardId}/mastery`, {
         method: 'PATCH',
         body: JSON.stringify({ action }),
       });
-
-      await refreshCards();
+      setCards((previous) =>
+        previous.map((card) =>
+          card.id === cardId
+            ? {
+                ...card,
+                masteryLevel: payload.masteryLevel,
+                lastReviewedAt: payload.lastReviewedAt,
+                nextReviewAt: payload.nextReviewAt,
+                isUnfamiliar: payload.masteryLevel === 1,
+              }
+            : card
+        )
+      );
     },
-    [refreshCards]
+    []
   );
 
   return {

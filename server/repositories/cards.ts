@@ -18,7 +18,7 @@ export interface CardRecord {
   normalized_term: string;
   tags: string[];
   is_unfamiliar: boolean;
-  mastery_level: 0 | 1 | 2 | 3;
+  mastery_level: number;
   last_reviewed_at: string | null;
   next_review_at: string | null;
 }
@@ -121,7 +121,7 @@ export async function setCardMastery(
   supabase: any,
   userId: string,
   cardId: string,
-  masteryLevel: 0 | 1 | 2 | 3,
+  masteryLevel: number,
   lastReviewedAt: string | null,
   nextReviewAt: string | null
 ): Promise<void> {

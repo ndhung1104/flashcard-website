@@ -1,4 +1,4 @@
-import { MasteryLevel, clampMasteryLevel } from './mastery.js';
+import { clampMasteryLevel } from './mastery.js';
 
 export interface LearnCard {
   id: string;
@@ -11,23 +11,25 @@ export interface BuildLearnQueueOptions {
   rng?: () => number;
 }
 
-const DEFAULT_WEIGHTS: Record<MasteryLevel, number> = {
+type MasteryBucket = 0 | 1 | 2 | 3;
+
+const DEFAULT_WEIGHTS: Record<MasteryBucket, number> = {
   0: 0.15,
   1: 0.5,
   2: 0.35,
   3: 0,
 };
 
-const WEIGHTS_WITH_MASTERED: Record<MasteryLevel, number> = {
+const WEIGHTS_WITH_MASTERED: Record<MasteryBucket, number> = {
   ...DEFAULT_WEIGHTS,
   3: 0.1,
 };
 
 function pickLevel(
-  availableLevels: MasteryLevel[],
-  weights: Record<MasteryLevel, number>,
+  availableLevels: MasteryBucket[],
+  weights: Record<MasteryBucket, number>,
   rng: () => number
-): MasteryLevel {
+): MasteryBucket {
   const totalWeight = availableLevels.reduce(
     (sum, level) => sum + weights[level],
     0
@@ -51,6 +53,14 @@ function pickLevel(
   return availableLevels[availableLevels.length - 1];
 }
 
+function toMasteryBucket(level: number): MasteryBucket {
+  if (level >= 3) {
+    return 3;
+  }
+
+  return level as 0 | 1 | 2;
+}
+
 export function buildLearnQueue(
   cards: LearnCard[],
   options: BuildLearnQueueOptions = {}
@@ -61,13 +71,13 @@ export function buildLearnQueue(
 
   const weights = includeMastered ? WEIGHTS_WITH_MASTERED : DEFAULT_WEIGHTS;
 
-  const groups = new Map<MasteryLevel, LearnCard[]>();
-  for (const level of [0, 1, 2, 3] as MasteryLevel[]) {
+  const groups = new Map<MasteryBucket, LearnCard[]>();
+  for (const level of [0, 1, 2, 3] as MasteryBucket[]) {
     groups.set(level, []);
   }
 
   for (const card of cards) {
-    const level = clampMasteryLevel(card.masteryLevel);
+    const level = toMasteryBucket(clampMasteryLevel(card.masteryLevel));
 
     if (!includeMastered && level === 3) {
       continue;
@@ -83,7 +93,7 @@ export function buildLearnQueue(
   const queue: string[] = [];
 
   while (queue.length < maxCards) {
-    const availableLevels = ([1, 2, 0, 3] as MasteryLevel[]).filter(
+    const availableLevels = ([1, 2, 0, 3] as MasteryBucket[]).filter(
       (level) => (groups.get(level)?.length ?? 0) > 0
     );
 

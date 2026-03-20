@@ -1,7 +1,7 @@
-export type MasteryLevel = 0 | 1 | 2 | 3;
+export type MasteryLevel = number;
 
 export interface MasteryTransitionResult {
-  masteryLevel: MasteryLevel;
+  masteryLevel: number;
   lastReviewedAt: string;
   nextReviewAt: string | null;
 }
@@ -9,17 +9,16 @@ export interface MasteryTransitionResult {
 const MASTERED_REVIEW_DELAY_MS = 3 * 24 * 60 * 60 * 1000;
 
 export function clampMasteryLevel(input: number): MasteryLevel {
-  if (input <= 0) return 0;
-  if (input >= 3) return 3;
-  return Math.trunc(input) as 1 | 2;
+  if (!Number.isFinite(input) || input <= 0) return 0;
+  return Math.trunc(input);
 }
 
 function toIsoString(value: Date): string {
   return value.toISOString();
 }
 
-function computeNextReviewAt(level: MasteryLevel, now: Date): string | null {
-  if (level !== 3) {
+function computeNextReviewAt(level: number, now: Date): string | null {
+  if (level < 3) {
     return null;
   }
 
@@ -31,8 +30,11 @@ export function applyStudyRecallResult(
   action: 'relearn' | 'known',
   now: Date = new Date()
 ): MasteryTransitionResult {
-  const _current = clampMasteryLevel(currentLevel);
-  const nextLevel: MasteryLevel = action === 'known' ? 3 : 1;
+  const normalizedCurrent = Math.max(0, Math.trunc(currentLevel));
+  const nextLevel =
+    action === 'known'
+      ? Math.max(2, normalizedCurrent + 1)
+      : 1;
 
   return {
     masteryLevel: nextLevel,
@@ -46,10 +48,9 @@ export function applyQuizResult(
   isCorrect: boolean,
   now: Date = new Date()
 ): MasteryTransitionResult {
-  const normalizedCurrent = clampMasteryLevel(currentLevel);
-
-  const nextLevel: MasteryLevel = isCorrect
-    ? clampMasteryLevel(normalizedCurrent + 1)
+  const normalizedCurrent = Math.max(0, Math.trunc(currentLevel));
+  const nextLevel = isCorrect
+    ? normalizedCurrent + 1
     : 1;
 
   return {

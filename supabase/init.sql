@@ -49,7 +49,7 @@ create table if not exists public.cards (
   normalized_term text not null default '',
   tags text[] not null default '{}',
   is_unfamiliar boolean not null default false,
-  mastery_level integer not null default 0 check (mastery_level between 0 and 3),
+  mastery_level integer not null default 0 check (mastery_level >= 0),
   last_reviewed_at timestamptz null,
   next_review_at timestamptz null,
   created_at timestamptz not null default now(),
@@ -93,19 +93,12 @@ alter table public.cards
 alter table public.cards
   alter column mastery_level set not null;
 
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'cards_mastery_level_check'
-      and conrelid = 'public.cards'::regclass
-  ) then
-    alter table public.cards
-      add constraint cards_mastery_level_check
-      check (mastery_level between 0 and 3);
-  end if;
-end $$;
+alter table public.cards
+  drop constraint if exists cards_mastery_level_check;
+
+alter table public.cards
+  add constraint cards_mastery_level_check
+  check (mastery_level >= 0);
 
 create unique index if not exists cards_id_user_id_key on public.cards (id, user_id);
 create unique index if not exists cards_user_deck_normalized_term_key

@@ -1,27 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ChevronLeft, ChevronRight, Loader2, RotateCcw, X } from 'lucide-react';
+import { Loader2, RotateCcw, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { Deck } from '../types';
 
+const STUDY_QUEUE_LIMIT = 50;
+
 interface StudyModeProps {
   deck: Deck | undefined;
-  learnQueue?: string[];
   onApplyMasteryAction: (
     cardId: string,
     action: 'relearn' | 'known'
   ) => Promise<void> | void;
 }
 
-export function StudyMode({
-  deck,
-  learnQueue,
-  onApplyMasteryAction,
-}: StudyModeProps) {
+export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSavingCard, setIsSavingCard] = useState(false);
   const [sessionQueueIds, setSessionQueueIds] = useState<string[]>([]);
@@ -37,16 +33,14 @@ export function StudyMode({
       return [] as string[];
     }
 
-    if (Array.isArray(learnQueue) && learnQueue.length > 0) {
-      return learnQueue.filter((id) => cardById.has(id));
-    }
-
-    return deck.cards.map((card) => card.id);
-  }, [deck, learnQueue, cardById]);
+    return [...deck.cards]
+      .sort((left, right) => left.masteryLevel - right.masteryLevel)
+      .slice(0, STUDY_QUEUE_LIMIT)
+      .map((card) => card.id);
+  }, [deck]);
 
   useEffect(() => {
     setSessionQueueIds([]);
-    setCurrentIndex(0);
     setIsFlipped(false);
     setHasSessionInitialized(false);
   }, [deckId]);
@@ -57,7 +51,6 @@ export function StudyMode({
     }
 
     setSessionQueueIds(initialQueueIds);
-    setCurrentIndex(0);
     setIsFlipped(false);
     setHasSessionInitialized(true);
   }, [hasSessionInitialized, initialQueueIds]);
@@ -67,32 +60,27 @@ export function StudyMode({
     [sessionQueueIds, cardById]
   );
 
-  const currentCard = activeCards[currentIndex];
+  const currentCard = activeCards[0];
   const totalSessionCards = initialQueueIds.length;
-  const learnedCount = totalSessionCards - activeCards.length;
-  const progress = totalSessionCards > 0 ? (learnedCount / totalSessionCards) * 100 : 0;
+  const processedCount = totalSessionCards - activeCards.length;
+  const currentPosition = activeCards.length > 0 ? processedCount + 1 : totalSessionCards;
+  const progress = totalSessionCards > 0 ? (processedCount / totalSessionCards) * 100 : 0;
 
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const handleKeyPress = (event: KeyboardEvent) => {
       if (!currentCard) return;
 
-      if (e.key === 'ArrowLeft') {
-        setCurrentIndex((prev) => Math.max(0, prev - 1));
-        setIsFlipped(false);
-      } else if (e.key === 'ArrowRight') {
-        setCurrentIndex((prev) => Math.min(activeCards.length - 1, prev + 1));
-        setIsFlipped(false);
-      } else if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
         setIsFlipped((prev) => !prev);
-      } else if (e.key === 'Escape') {
+      } else if (event.key === 'Escape') {
         navigate(`/deck/${deckId}`);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [activeCards.length, currentCard, deckId, navigate]);
+  }, [currentCard, deckId, navigate]);
 
   if (!deck || !deckId) {
     return (
@@ -126,7 +114,7 @@ export function StudyMode({
         <div className="text-center max-w-sm px-4">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Dot hoc da xong</h2>
           <p className="text-sm text-gray-600 mb-6">
-            Cac the level cao da duoc an tam thoi. Ban co the quay lai deck hoac vao quiz.
+            Ban da hoan thanh queue hoc cho dot nay.
           </p>
           <div className="flex gap-2 justify-center">
             <Button variant="outline" onClick={() => navigate(`/deck/${deckId}`)}>
@@ -143,16 +131,6 @@ export function StudyMode({
     navigate(`/deck/${deckId}`);
   };
 
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
-    setIsFlipped(false);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => Math.min(activeCards.length - 1, prev + 1));
-    setIsFlipped(false);
-  };
-
   const handleMasteryAction = async (action: 'relearn' | 'known') => {
     if (isSavingCard || !currentCard) {
       return;
@@ -162,34 +140,7 @@ export function StudyMode({
     setIsSavingCard(true);
     try {
       await onApplyMasteryAction(currentCardId, action);
-
-      const queueSnapshot = [...sessionQueueIds];
-      const currentQueueIndex = queueSnapshot.indexOf(currentCardId);
-
-      if (currentQueueIndex !== -1) {
-        if (action === 'known') {
-          queueSnapshot.splice(currentQueueIndex, 1);
-
-          const nextIndex =
-            queueSnapshot.length === 0
-              ? 0
-              : Math.min(currentQueueIndex, queueSnapshot.length - 1);
-
-          setSessionQueueIds(queueSnapshot);
-          setCurrentIndex(nextIndex);
-        } else {
-          queueSnapshot.splice(currentQueueIndex, 1);
-          queueSnapshot.push(currentCardId);
-
-          // Keep "relearn" cards in session, but avoid showing the same card immediately.
-          const nextIndex =
-            currentQueueIndex < queueSnapshot.length - 1 ? currentQueueIndex : 0;
-
-          setSessionQueueIds(queueSnapshot);
-          setCurrentIndex(nextIndex);
-        }
-      }
-
+      setSessionQueueIds((previous) => previous.filter((id) => id !== currentCardId));
       setIsFlipped(false);
     } finally {
       setIsSavingCard(false);
@@ -209,17 +160,17 @@ export function StudyMode({
             </button>
             <h1 className="font-medium text-sm">{deck.title}</h1>
             <span className="text-sm text-gray-600">
-              {currentIndex + 1} / {activeCards.length}
+              {currentPosition} / {totalSessionCards}
             </span>
           </div>
           <Progress value={progress} className="h-1" />
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+      <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-160px)]">
         <div className="w-full max-w-md">
           <p className="text-center text-xs text-gray-500 mb-4">
-            Ban nhin "Tu vung" va tu nham "Dinh nghia" trong dau
+            Nhin tu vung va tu nho nghia truoc khi lat the
           </p>
           <div
             onClick={() => setIsFlipped((prev) => !prev)}
@@ -266,7 +217,7 @@ export function StudyMode({
                 ) : (
                   <>
                     <RotateCcw className="w-4 h-4 mr-2" />
-                    Hoc lai (Chua thuoc)
+                    Chua biet
                   </>
                 )}
               </Button>
@@ -279,7 +230,7 @@ export function StudyMode({
                 {isSavingCard ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Da biet (Thuoc)'
+                  'Da biet'
                 )}
               </Button>
             </div>
@@ -297,38 +248,6 @@ export function StudyMode({
           </div>
         </div>
       </main>
-
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t py-4">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-2">
-            <Button
-              onClick={handlePrevious}
-              disabled={currentIndex === 0 || isSavingCard}
-              size="lg"
-              variant="outline"
-              className="flex-1 max-w-[140px]"
-            >
-              <ChevronLeft className="w-5 h-5 mr-1" />
-              Previous
-            </Button>
-            <span className="text-sm text-gray-600 px-4">
-              {currentIndex + 1} of {activeCards.length}
-            </span>
-            <Button
-              onClick={handleNext}
-              disabled={currentIndex === activeCards.length - 1 || isSavingCard}
-              size="lg"
-              className="flex-1 max-w-[140px]"
-            >
-              Next
-              <ChevronRight className="w-5 h-5 ml-1" />
-            </Button>
-          </div>
-          <p className="text-xs text-center text-gray-400 hidden sm:block">
-            Use left and right arrows to navigate | Space/Enter to flip | Esc to exit
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

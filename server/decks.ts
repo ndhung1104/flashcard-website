@@ -10,7 +10,7 @@
 export function mapCardRow(row: any) {
   const masteryLevel =
     typeof row.mastery_level === 'number'
-      ? Math.min(3, Math.max(0, Math.trunc(row.mastery_level)))
+      ? Math.max(0, Math.trunc(row.mastery_level))
       : 0;
 
   return {
@@ -21,7 +21,7 @@ export function mapCardRow(row: any) {
       ? row.tags.map((tag: unknown) => String(tag))
       : [],
     isUnfamiliar: Boolean(row.is_unfamiliar),
-    masteryLevel: masteryLevel as 0 | 1 | 2 | 3,
+    masteryLevel,
     lastReviewedAt:
       typeof row.last_reviewed_at === 'string' ? row.last_reviewed_at : null,
     nextReviewAt:

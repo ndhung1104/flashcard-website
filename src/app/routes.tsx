@@ -5,7 +5,6 @@ import { QuizMode } from './screens/QuizMode';
 import { StudyMode } from './screens/StudyMode';
 import { useDecks } from './hooks/useDecks';
 import { useCards } from './hooks/useCards';
-import { useLearnEngine } from './hooks/useLearnEngine';
 import { useState } from 'react';
 import { CreateDeckModal } from './components/CreateDeckModal';
 import { ImportModal } from './components/ImportModal';
@@ -107,11 +106,6 @@ function StudyModeWrapper() {
   const { deckId } = useParams();
   const { getDeck, isLoading } = useDecks();
   const { cards, isLoading: isLoadingCards, applyMasteryAction } = useCards(deckId);
-  const {
-    queue: learnQueue,
-    isLoading: isLoadingLearnQueue,
-    refreshQueue,
-  } = useLearnEngine(deckId);
 
   const deckMetadata = deckId ? getDeck(deckId) : undefined;
   const deckWithCards = deckMetadata
@@ -123,10 +117,9 @@ function StudyModeWrapper() {
     action: 'relearn' | 'known'
   ) => {
     await applyMasteryAction(cardId, action);
-    await refreshQueue();
   };
 
-  if (isLoading || isLoadingCards || isLoadingLearnQueue) {
+  if (isLoading || isLoadingCards) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-sm text-gray-500">Loading study mode...</p>
@@ -137,7 +130,6 @@ function StudyModeWrapper() {
   return (
     <StudyMode
       deck={deckWithCards}
-      learnQueue={learnQueue}
       onApplyMasteryAction={handleApplyMasteryAction}
     />
   );

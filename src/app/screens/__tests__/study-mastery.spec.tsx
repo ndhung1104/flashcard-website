@@ -47,7 +47,7 @@ describe('StudyMode mastery flow', () => {
     expect(screen.getByTestId('study-known-btn')).toBeInTheDocument();
   });
 
-  it('moves to the next card when relearn is pressed on the last card', async () => {
+  it('removes card from current session when relearn is pressed', async () => {
     const onApplyMasteryAction = vi.fn(async () => {});
     const multiDeck: Deck = {
       ...deck,
@@ -97,6 +97,7 @@ describe('StudyMode mastery flow', () => {
     await waitFor(() =>
       expect(onApplyMasteryAction).toHaveBeenCalledWith('card-3', 'relearn')
     );
-    expect(screen.getByText('Cell')).toBeInTheDocument();
+    expect(screen.getByText('Nucleus')).toBeInTheDocument();
+    expect(screen.queryByText('Mitochondria')).not.toBeInTheDocument();
   });
 });

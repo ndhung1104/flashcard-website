@@ -156,17 +156,12 @@ export function StudyMode({
         const queueWithoutCurrent = [...queueSnapshot];
         queueWithoutCurrent.splice(currentQueueIndex, 1);
 
-        const nextQueue =
-          action === 'relearn'
-            ? [...queueWithoutCurrent, currentCardId]
-            : queueWithoutCurrent;
-
         const nextIndex =
           queueWithoutCurrent.length === 0
             ? 0
-            : currentQueueIndex % queueWithoutCurrent.length;
+            : Math.min(currentQueueIndex, queueWithoutCurrent.length - 1);
 
-        setSessionQueueIds(nextQueue);
+        setSessionQueueIds(queueWithoutCurrent);
         setCurrentIndex(nextIndex);
       }
 

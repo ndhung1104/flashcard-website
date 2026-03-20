@@ -25,6 +25,7 @@ export function StudyMode({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSavingCard, setIsSavingCard] = useState(false);
   const [sessionQueueIds, setSessionQueueIds] = useState<string[]>([]);
+  const [hasSessionInitialized, setHasSessionInitialized] = useState(false);
 
   const cardById = useMemo(
     () => new Map((deck?.cards ?? []).map((card) => [card.id, card])),
@@ -44,10 +45,22 @@ export function StudyMode({
   }, [deck, learnQueue, cardById]);
 
   useEffect(() => {
+    setSessionQueueIds([]);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setHasSessionInitialized(false);
+  }, [deckId]);
+
+  useEffect(() => {
+    if (hasSessionInitialized || initialQueueIds.length === 0) {
+      return;
+    }
+
     setSessionQueueIds(initialQueueIds);
     setCurrentIndex(0);
     setIsFlipped(false);
-  }, [initialQueueIds]);
+    setHasSessionInitialized(true);
+  }, [hasSessionInitialized, initialQueueIds]);
 
   const activeCards = useMemo(
     () => sessionQueueIds.map((id) => cardById.get(id)).filter(Boolean),

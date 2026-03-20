@@ -16,6 +16,7 @@ A mobile-first flashcard web app (Vite + React) with server-side APIs on Vercel 
 - Dashboard with deck list + create deck
 - Deck details with tag/unfamiliar filters, add/delete/toggle cards
 - Import CSV/XLSX through server endpoint `/api/import`
+- Auto import from Google Drive (file + sheet mapping per deck)
 - Study mode with flip card and mastery actions (`Hoc lai`, `Da biet`)
 - Learn queue API that prioritizes low-mastery cards
 - Quiz mode (multiple choice) with server-side scoring
@@ -78,6 +79,10 @@ Create `.env` from `.env.example`:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+GOOGLE_DRIVE_CLIENT_ID=
+GOOGLE_DRIVE_CLIENT_SECRET=
+GOOGLE_DRIVE_REFRESH_TOKEN=
+DRIVE_SYNC_CRON_KEY=
 ```
 
 ## First-Time Supabase Setup
@@ -118,3 +123,28 @@ npm run build
 - Client does not call Supabase directly.
 - `.env` is local only; on Vercel set env vars in Project Settings.
 - For production deployment checklist, see [`docs/deploy/vercel-checklist.md`](docs/deploy/vercel-checklist.md).
+
+## Google Drive Auto Import
+
+### API actions (all under `/api/import`)
+
+- `POST` multipart (existing): manual file upload.
+- `GET ?action=drive-sources&deckId=...`: list saved Drive sources for deck.
+- `POST ?action=drive-source-upsert`: save source `{ deckId, fileId, sheetName, defaultTag, isActive }`.
+- `POST ?action=drive-sync-now`: manual sync `{ deckId?, sourceId?, force? }`.
+- `GET ?action=drive-sheets&fileId=...`: fetch sheet names from Drive file.
+- `GET ?action=drive-sync-cron`: cron sync (auth by `x-vercel-cron` header or `cronKey`).
+
+### Cron
+
+`vercel.json` schedules:
+
+- `/api/import?action=drive-sync-cron` every 30 minutes.
+
+### Drive OAuth requirements
+
+Create OAuth credentials (Web app) in Google Cloud and generate a refresh token with `drive.readonly` scope. Put those values into:
+
+- `GOOGLE_DRIVE_CLIENT_ID`
+- `GOOGLE_DRIVE_CLIENT_SECRET`
+- `GOOGLE_DRIVE_REFRESH_TOKEN`

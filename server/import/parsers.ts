@@ -1,6 +1,8 @@
 import Papa from 'papaparse';
 import readXlsxFile from 'read-excel-file/node';
 import { ImportRawRow } from './types.js';
+// read-excel-file exports helper to list sheet names.
+import { readSheetNames } from 'read-excel-file/node';
 
 function normalizeXlsxRows(rows: unknown[][]): ImportRawRow[] {
   if (rows.length === 0) {
@@ -48,7 +50,8 @@ function parseCsvBuffer(buffer: Buffer): ImportRawRow[] {
 
 export async function parseImportFile(
   fileName: string,
-  buffer: Buffer
+  buffer: Buffer,
+  sheetName?: string
 ): Promise<ImportRawRow[]> {
   const lowerFileName = fileName.toLowerCase();
 
@@ -57,9 +60,22 @@ export async function parseImportFile(
   }
 
   if (lowerFileName.endsWith('.xlsx')) {
-    const rows = await readXlsxFile(buffer);
+    const options = sheetName ? ({ sheet: sheetName } as const) : undefined;
+    const rows = await readXlsxFile(buffer, options);
     return normalizeXlsxRows(rows as unknown[][]);
   }
 
   throw new Error('Unsupported file format. Please upload .csv or .xlsx.');
+}
+
+export async function getWorkbookSheetNames(
+  fileName: string,
+  buffer: Buffer
+): Promise<string[]> {
+  if (!fileName.toLowerCase().endsWith('.xlsx')) {
+    return [];
+  }
+
+  const sheets = await readSheetNames(buffer);
+  return sheets.map((sheet) => String(sheet).trim()).filter(Boolean);
 }

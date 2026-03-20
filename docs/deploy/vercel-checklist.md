@@ -20,6 +20,10 @@ Set for **Production + Preview + Development**:
 - [ ] `SUPABASE_URL`
 - [ ] `SUPABASE_ANON_KEY`
 - [ ] `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] `GOOGLE_DRIVE_CLIENT_ID`
+- [ ] `GOOGLE_DRIVE_CLIENT_SECRET`
+- [ ] `GOOGLE_DRIVE_REFRESH_TOKEN`
+- [ ] `DRIVE_SYNC_CRON_KEY` (optional if using Vercel cron header only)
 
 ## 4. Deploy Verification
 
@@ -27,6 +31,8 @@ Set for **Production + Preview + Development**:
 - [ ] `/api/decks` requires auth and returns deck list after login
 - [ ] `/api/cards?deckId=...` returns cards
 - [ ] `/api/import` accepts `.csv` / `.xlsx` and returns report
+- [ ] `/api/import?action=drive-sources&deckId=...` returns source list
+- [ ] `/api/import?action=drive-sync-now` syncs Drive sources
 - [ ] Dashboard, Deck Details, Study screens work end-to-end
 
 ## 5. PWA Verification

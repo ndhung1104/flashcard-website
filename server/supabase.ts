@@ -26,3 +26,12 @@ export function createUserClient(accessToken: string) {
   });
 }
 
+export function createServiceClient() {
+  const env = getServerEnv();
+  if (!env.supabaseServiceRoleKey) {
+    throw new Error('Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  return createClient(env.supabaseUrl, env.supabaseServiceRoleKey, baseOptions);
+}
+

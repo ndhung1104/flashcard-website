@@ -11,6 +11,10 @@ export function getServerEnv() {
     supabaseUrl: getRequiredEnv('SUPABASE_URL'),
     supabaseAnonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+    googleDriveClientId: process.env.GOOGLE_DRIVE_CLIENT_ID ?? '',
+    googleDriveClientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET ?? '',
+    googleDriveRefreshToken: process.env.GOOGLE_DRIVE_REFRESH_TOKEN ?? '',
+    driveSyncCronKey: process.env.DRIVE_SYNC_CRON_KEY ?? '',
     nodeEnv: process.env.NODE_ENV ?? 'development',
   };
 }

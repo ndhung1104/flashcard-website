@@ -1,12 +1,14 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Input } from '../components/ui/input';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { SampleCSVButton } from './SampleCSVButton';
 import { ImportResult } from '../types';
 import { useImport } from '../hooks/useImport';
+import type { DriveImportSource } from '../hooks/useImport';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -20,9 +22,48 @@ export function ImportModal({ isOpen, onClose, deckId, onImported }: ImportModal
   const [defaultTag, setDefaultTag] = useState('imported');
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [driveError, setDriveError] = useState<string | null>(null);
+  const [driveInfo, setDriveInfo] = useState<string | null>(null);
+  const [driveFileId, setDriveFileId] = useState('');
+  const [driveSheetName, setDriveSheetName] = useState('');
+  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+  const [driveSources, setDriveSources] = useState<DriveImportSource[]>([]);
+  const [isSavingDriveSource, setIsSavingDriveSource] = useState(false);
+  const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isImporting, importFile } = useImport();
+  const {
+    isImporting,
+    isSyncingDrive,
+    importFile,
+    listDriveSources,
+    saveDriveSource,
+    syncDriveNow,
+    fetchDriveSheets,
+  } = useImport();
+
+  const loadDriveSources = async () => {
+    setIsLoadingSources(true);
+    try {
+      const sources = await listDriveSources(deckId);
+      setDriveSources(sources);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load Drive sources';
+      setDriveError(message);
+    } finally {
+      setIsLoadingSources(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    void loadDriveSources();
+  }, [isOpen, deckId]);
 
   const handleFileSelect = (selectedFile: File) => {
     if (!selectedFile.name.match(/\.(csv|xlsx)$/i)) {
@@ -68,10 +109,102 @@ export function ImportModal({ isOpen, onClose, deckId, onImported }: ImportModal
     }
   };
 
+  const handleLoadSheetNames = async () => {
+    if (!driveFileId.trim()) {
+      setDriveError('Please enter Google Drive file ID first');
+      return;
+    }
+
+    setDriveError(null);
+    setDriveInfo(null);
+    setIsLoadingSheets(true);
+
+    try {
+      const data = await fetchDriveSheets(driveFileId.trim());
+      setAvailableSheets(data.sheets);
+
+      if (data.sheets.length > 0) {
+        setDriveSheetName(data.sheets[0]);
+      }
+
+      setDriveInfo(
+        data.sheets.length > 0
+          ? `Found ${data.sheets.length} sheet(s) in ${data.fileName}`
+          : `No sheet found in ${data.fileName}`
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load sheet names';
+      setDriveError(message);
+    } finally {
+      setIsLoadingSheets(false);
+    }
+  };
+
+  const handleSaveDriveSource = async () => {
+    if (!driveFileId.trim() || !driveSheetName.trim()) {
+      setDriveError('File ID and Sheet Name are required');
+      return;
+    }
+
+    setIsSavingDriveSource(true);
+    setDriveError(null);
+    setDriveInfo(null);
+
+    try {
+      await saveDriveSource({
+        deckId,
+        fileId: driveFileId.trim(),
+        sheetName: driveSheetName.trim(),
+        defaultTag,
+      });
+      await loadDriveSources();
+      setDriveInfo('Drive source saved successfully');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save drive source';
+      setDriveError(message);
+    } finally {
+      setIsSavingDriveSource(false);
+    }
+  };
+
+  const handleSyncDriveNow = async () => {
+    setDriveError(null);
+    setDriveInfo(null);
+
+    try {
+      const syncResponse = await syncDriveNow({ deckId });
+      await loadDriveSources();
+
+      const inserted = syncResponse.results.reduce(
+        (sum, item) => sum + (item.report?.inserted ?? 0),
+        0
+      );
+
+      if (inserted > 0) {
+        await onImported();
+      }
+
+      setDriveInfo(
+        `Sync done: ${syncResponse.succeeded} success, ${syncResponse.failed} failed, ${syncResponse.skipped} skipped`
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to run drive sync';
+      setDriveError(message);
+    }
+  };
+
   const handleClose = () => {
     setFile(null);
     setResult(null);
     setError(null);
+    setDriveError(null);
+    setDriveInfo(null);
+    setDriveFileId('');
+    setDriveSheetName('');
+    setAvailableSheets([]);
     setDefaultTag('imported');
     onClose();
   };
@@ -188,6 +321,111 @@ export function ImportModal({ isOpen, onClose, deckId, onImported }: ImportModal
                 <Button onClick={handleUpload} disabled={!file || isImporting}>
                   {isImporting ? 'Uploading...' : 'Upload'}
                 </Button>
+              </div>
+
+              <div className="border rounded-lg p-3 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold">Auto Import from Google Drive</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Map one Drive file + sheet into this deck, then run sync manually or by
+                    cron.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-600">Drive File ID</label>
+                  <Input
+                    placeholder="1AbCDefG..."
+                    value={driveFileId}
+                    onChange={(event) => setDriveFileId(event.target.value)}
+                    disabled={isSavingDriveSource || isSyncingDrive}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-600">Sheet Name</label>
+                  <Input
+                    placeholder="Vocabulary"
+                    value={driveSheetName}
+                    onChange={(event) => setDriveSheetName(event.target.value)}
+                    disabled={isSavingDriveSource || isSyncingDrive}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleLoadSheetNames()}
+                    disabled={isLoadingSheets || isSavingDriveSource || isSyncingDrive}
+                  >
+                    {isLoadingSheets ? 'Loading sheets...' : 'Load Sheets'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => void handleSaveDriveSource()}
+                    disabled={isSavingDriveSource || isSyncingDrive}
+                  >
+                    {isSavingDriveSource ? 'Saving...' : 'Save Source'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void handleSyncDriveNow()}
+                    disabled={isSyncingDrive || isSavingDriveSource}
+                  >
+                    {isSyncingDrive ? 'Syncing...' : 'Sync Now'}
+                  </Button>
+                </div>
+
+                {availableSheets.length > 0 ? (
+                  <div className="text-xs text-gray-500">
+                    Sheets: {availableSheets.join(', ')}
+                  </div>
+                ) : null}
+
+                {driveError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{driveError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {driveInfo ? (
+                  <Alert>
+                    <AlertDescription>{driveInfo}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-gray-600">
+                    Saved Sources {isLoadingSources ? '(Loading...)' : ''}
+                  </p>
+                  {driveSources.length === 0 ? (
+                    <p className="text-xs text-gray-500">No source configured for this deck.</p>
+                  ) : (
+                    <div className="max-h-28 overflow-auto space-y-2">
+                      {driveSources.map((source) => (
+                        <div key={source.id} className="rounded border p-2 text-xs">
+                          <p className="font-medium">
+                            {source.file_name || source.file_id} {'->'} {source.sheet_name}
+                          </p>
+                          <p className="text-gray-500">
+                            status: {source.last_sync_status}
+                            {source.last_synced_at
+                              ? ` | last sync: ${new Date(
+                                  source.last_synced_at
+                                ).toLocaleString()}`
+                              : ''}
+                          </p>
+                          {source.last_sync_error ? (
+                            <p className="text-red-600 mt-1">{source.last_sync_error}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}

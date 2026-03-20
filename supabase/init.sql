@@ -153,6 +153,32 @@ create table if not exists public.import_jobs (
 create index if not exists import_jobs_user_id_deck_id_idx
 on public.import_jobs (user_id, deck_id, created_at desc);
 
+create table if not exists public.drive_import_sources (
+  id text primary key default gen_random_uuid()::text,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  deck_id text not null,
+  file_id text not null,
+  file_name text not null default '',
+  sheet_name text not null,
+  default_tag text not null default 'imported',
+  is_active boolean not null default true,
+  last_synced_at timestamptz null,
+  last_source_updated_at timestamptz null,
+  last_sync_status text not null default 'never',
+  last_sync_error text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint drive_import_sources_deck_fk foreign key (deck_id, user_id)
+    references public.decks (id, user_id) on delete cascade
+);
+
+create unique index if not exists drive_import_sources_user_deck_file_sheet_key
+on public.drive_import_sources (user_id, deck_id, file_id, sheet_name);
+create index if not exists drive_import_sources_user_id_active_idx
+on public.drive_import_sources (user_id, is_active, created_at desc);
+create index if not exists drive_import_sources_deck_id_idx
+on public.drive_import_sources (deck_id, created_at desc);
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -197,6 +223,12 @@ before update on public.tags
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists set_drive_import_sources_updated_at on public.drive_import_sources;
+create trigger set_drive_import_sources_updated_at
+before update on public.drive_import_sources
+for each row
+execute function public.set_updated_at();
+
 drop trigger if exists set_cards_normalized_term on public.cards;
 create trigger set_cards_normalized_term
 before insert or update of term on public.cards
@@ -233,6 +265,7 @@ alter table public.cards enable row level security;
 alter table public.tags enable row level security;
 alter table public.card_tags enable row level security;
 alter table public.import_jobs enable row level security;
+alter table public.drive_import_sources enable row level security;
 
 drop policy if exists profiles_select_own on public.profiles;
 create policy profiles_select_own
@@ -351,3 +384,28 @@ create policy import_jobs_insert_own
 on public.import_jobs
 for insert
 with check (auth.uid() = user_id);
+
+drop policy if exists drive_import_sources_select_own on public.drive_import_sources;
+create policy drive_import_sources_select_own
+on public.drive_import_sources
+for select
+using (auth.uid() = user_id);
+
+drop policy if exists drive_import_sources_insert_own on public.drive_import_sources;
+create policy drive_import_sources_insert_own
+on public.drive_import_sources
+for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists drive_import_sources_update_own on public.drive_import_sources;
+create policy drive_import_sources_update_own
+on public.drive_import_sources
+for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists drive_import_sources_delete_own on public.drive_import_sources;
+create policy drive_import_sources_delete_own
+on public.drive_import_sources
+for delete
+using (auth.uid() = user_id);

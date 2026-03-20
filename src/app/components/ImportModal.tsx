@@ -218,7 +218,7 @@ export function ImportModal({ isOpen, onClose, deckId, onImported }: ImportModal
         }
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import Cards</DialogTitle>
         </DialogHeader>

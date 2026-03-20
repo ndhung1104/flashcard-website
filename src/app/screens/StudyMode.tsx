@@ -136,7 +136,15 @@ export function StudyMode({
     );
   }
 
-  const progress = ((currentIndex + 1) / activeCards.length) * 100;
+  // const progress = ((currentIndex + 1) / activeCards.length) * 100;
+  // Thêm 1 biến memo để giữ tổng số thẻ của session
+  const totalSessionCards = useMemo(() => initialQueueIds.length, [initialQueueIds]);
+
+  // Tính số thẻ đã loại khỏi queue (tức là đã thuộc)
+  const learnedCount = totalSessionCards - activeCards.length;
+
+  // Progress = (Số thẻ đã thuộc / Tổng số thẻ) * 100
+  const progress = totalSessionCards > 0 ? (learnedCount / totalSessionCards) * 100 : 0;
 
   const handleExit = () => {
     navigate(`/deck/${deckId}`);
@@ -154,31 +162,45 @@ export function StudyMode({
 
   const handleMasteryAction = async (action: 'relearn' | 'known') => {
     if (isSavingCard || !currentCard) {
-      return;
-    }
+    return;
+  }
 
-    const currentCardId = currentCard.id;
-    setIsSavingCard(true);
-    try {
-      await onApplyMasteryAction(currentCardId, action);
+  const currentCardId = currentCard.id;
+  setIsSavingCard(true);
+  try {
+    await onApplyMasteryAction(currentCardId, action);
 
-      const queueSnapshot = [...sessionQueueIds];
-      const currentQueueIndex = queueSnapshot.indexOf(currentCardId);
+    const queueSnapshot = [...sessionQueueIds];
+    const currentQueueIndex = queueSnapshot.indexOf(currentCardId);
 
-      if (currentQueueIndex !== -1) {
-        const queueWithoutCurrent = [...queueSnapshot];
-        queueWithoutCurrent.splice(currentQueueIndex, 1);
-
-        const nextIndex =
-          queueWithoutCurrent.length === 0
+    if (currentQueueIndex !== -1) {
+      if (action === 'known') {
+        // NẾU ĐÃ BIẾT: Xóa khỏi queue
+        queueSnapshot.splice(currentQueueIndex, 1);
+        
+        const nextIndex = queueSnapshot.length === 0
             ? 0
-            : Math.min(currentQueueIndex, queueWithoutCurrent.length - 1);
-
-        setSessionQueueIds(queueWithoutCurrent);
+            : Math.min(currentQueueIndex, queueSnapshot.length - 1);
+            
+        setSessionQueueIds(queueSnapshot);
+        setCurrentIndex(nextIndex);
+      } else {
+        // NẾU CHƯA THUỘC: Đẩy thẻ xuống cuối queue để học lại sau
+        queueSnapshot.splice(currentQueueIndex, 1);
+        queueSnapshot.push(currentCardId);
+        
+        setSessionQueueIds(queueSnapshot);
+        // Vì thẻ hiện tại đã bị nhấc ra và đặt xuống cuối, 
+        // thẻ tiếp theo sẽ tự động trượt lên vị trí currentQueueIndex.
+        // Cần đảm bảo index không vượt quá độ dài mảng (nếu chỉ còn 1 thẻ).
+        const nextIndex = currentQueueIndex >= queueSnapshot.length 
+            ? 0 
+            : currentQueueIndex;
         setCurrentIndex(nextIndex);
       }
+    }
 
-      setIsFlipped(false);
+    setIsFlipped(false);
     } finally {
       setIsSavingCard(false);
     }

@@ -105,7 +105,12 @@ function DeckDetailsWrapper() {
 function StudyModeWrapper() {
   const { deckId } = useParams();
   const { getDeck, isLoading } = useDecks();
-  const { cards, isLoading: isLoadingCards, applyMasteryAction } = useCards(deckId);
+  const {
+    cards,
+    isLoading: isLoadingCards,
+    applyMasteryAction,
+    refreshCards,
+  } = useCards(deckId);
 
   const deckMetadata = deckId ? getDeck(deckId) : undefined;
   const deckWithCards = deckMetadata
@@ -131,6 +136,7 @@ function StudyModeWrapper() {
     <StudyMode
       deck={deckWithCards}
       onApplyMasteryAction={handleApplyMasteryAction}
+      onContinueStudy={refreshCards}
     />
   );
 }

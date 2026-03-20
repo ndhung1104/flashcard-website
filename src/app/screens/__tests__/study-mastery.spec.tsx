@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { StudyMode } from '../StudyMode';
 import { Deck } from '../../types';
@@ -43,8 +44,8 @@ describe('StudyMode flow', () => {
 
     fireEvent.click(screen.getByText('Cell'));
 
-    expect(screen.getByTestId('study-relearn-btn')).toHaveTextContent('Chua biet');
-    expect(screen.getByTestId('study-known-btn')).toHaveTextContent('Da biet');
+    expect(screen.getByRole('button', { name: 'Chua biet' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Da biet' })).toBeInTheDocument();
   });
 
   it('initializes queue by mastery asc and limits to first 50 cards', () => {
@@ -107,5 +108,60 @@ describe('StudyMode flow', () => {
     await waitFor(() => expect(onApplyMasteryAction).toHaveBeenCalledWith('card-2', 'known'));
     expect(screen.getByText('C')).toBeInTheDocument();
     expect(screen.queryByText('B')).not.toBeInTheDocument();
+  });
+
+  it('shows continue button after session done and starts a refreshed queue', async () => {
+    const onApplyMasteryAction = vi.fn(async () => {});
+    const initialCards: Deck['cards'] = [
+      { id: 'card-1', term: 'A', masteryLevel: 0, ...baseCard },
+    ];
+    const refreshedCards: Deck['cards'] = [
+      { id: 'card-2', term: 'Z', masteryLevel: 0, ...baseCard },
+    ];
+    const onContinueStudy = vi.fn(async () => refreshedCards);
+
+    function StudyModeHarness() {
+      const [deck, setDeck] = useState<Deck>(createDeck(initialCards));
+
+      const handleContinueStudy = async () => {
+        const cards = await onContinueStudy();
+        setDeck(createDeck(cards));
+        return cards;
+      };
+
+      return (
+        <StudyMode
+          deck={deck}
+          onApplyMasteryAction={onApplyMasteryAction}
+          onContinueStudy={handleContinueStudy}
+        />
+      );
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/study/deck-1']}>
+        <Routes>
+          <Route
+            path="/study/:deckId"
+            element={<StudyModeHarness />}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByText('A'));
+    fireEvent.click(screen.getByTestId('study-known-btn'));
+
+    await waitFor(() => expect(onApplyMasteryAction).toHaveBeenCalledWith('card-1', 'known'));
+    expect(screen.getByText('Study session completed')).toBeInTheDocument();
+
+    const continueButton = screen.getByRole('button', { name: 'Continue studying' });
+    expect(continueButton).toBeInTheDocument();
+
+    fireEvent.click(continueButton);
+
+    await waitFor(() => expect(onContinueStudy).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('Z')).toBeInTheDocument();
+    expect(screen.queryByText('A')).not.toBeInTheDocument();
   });
 });

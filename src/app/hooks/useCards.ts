@@ -54,11 +54,11 @@ export function useCards(deckId: string | undefined) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const refreshCards = useCallback(async () => {
+  const refreshCards = useCallback(async (): Promise<Card[]> => {
     if (!deckId) {
       setCards([]);
       setIsLoading(false);
-      return;
+      return [];
     }
 
     setIsLoading(true);
@@ -69,10 +69,12 @@ export function useCards(deckId: string | undefined) {
         { method: 'GET' }
       );
       setCards(data.cards);
+      return data.cards;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load cards';
       toast.error(message);
       setCards([]);
+      return [];
     } finally {
       setIsLoading(false);
     }

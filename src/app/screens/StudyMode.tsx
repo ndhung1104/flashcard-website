@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Loader2, RotateCcw, X } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { Deck } from '../types';
@@ -13,13 +13,26 @@ interface StudyModeProps {
     cardId: string,
     action: 'relearn' | 'known'
   ) => Promise<void> | void;
+  onContinueStudy?: () => Promise<Deck['cards'] | void> | Deck['cards'] | void;
 }
 
-export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
+function buildQueueIds(cards: Deck['cards']): string[] {
+  return [...cards]
+    .sort((left, right) => left.masteryLevel - right.masteryLevel)
+    .slice(0, STUDY_QUEUE_LIMIT)
+    .map((card) => card.id);
+}
+
+export function StudyMode({
+  deck,
+  onApplyMasteryAction,
+  onContinueStudy,
+}: StudyModeProps) {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSavingCard, setIsSavingCard] = useState(false);
+  const [isRefreshingSession, setIsRefreshingSession] = useState(false);
   const [sessionQueueIds, setSessionQueueIds] = useState<string[]>([]);
   const [hasSessionInitialized, setHasSessionInitialized] = useState(false);
 
@@ -33,10 +46,7 @@ export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
       return [] as string[];
     }
 
-    return [...deck.cards]
-      .sort((left, right) => left.masteryLevel - right.masteryLevel)
-      .slice(0, STUDY_QUEUE_LIMIT)
-      .map((card) => card.id);
+    return buildQueueIds(deck.cards);
   }, [deck]);
 
   useEffect(() => {
@@ -82,6 +92,26 @@ export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentCard, deckId, navigate]);
 
+  const handleContinueStudy = async () => {
+    if (isRefreshingSession) {
+      return;
+    }
+
+    setIsRefreshingSession(true);
+    try {
+      const refreshedCards = await onContinueStudy?.();
+      const nextQueueIds = Array.isArray(refreshedCards)
+        ? buildQueueIds(refreshedCards)
+        : initialQueueIds;
+
+      setSessionQueueIds(nextQueueIds);
+      setIsFlipped(false);
+      setHasSessionInitialized(true);
+    } finally {
+      setIsRefreshingSession(false);
+    }
+  };
+
   if (!deck || !deckId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -112,15 +142,18 @@ export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-sm px-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Dot hoc da xong</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Study session completed</h2>
           <p className="text-sm text-gray-600 mb-6">
-            Ban da hoan thanh queue hoc cho dot nay.
+            You have completed this study session.
           </p>
           <div className="flex gap-2 justify-center">
             <Button variant="outline" onClick={() => navigate(`/deck/${deckId}`)}>
-              Ve Deck
+              Back to deck
             </Button>
-            <Button onClick={() => navigate(`/quiz/${deckId}`)}>Qua Quiz</Button>
+            <Button onClick={() => void handleContinueStudy()} variant="outline" disabled={isRefreshingSession}>
+              {isRefreshingSession ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continue studying'}
+            </Button>
+            <Button onClick={() => navigate(`/quiz/${deckId}`)}>Quiz time</Button>
           </div>
         </div>
       </div>
@@ -170,7 +203,7 @@ export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
       <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-160px)]">
         <div className="w-full max-w-md">
           <p className="text-center text-xs text-gray-500 mb-4">
-            Nhin tu vung va tu nho nghia truoc khi lat the
+            Press Space or Enter to flip the card, Escape to exit
           </p>
           <div
             onClick={() => setIsFlipped((prev) => !prev)}
@@ -187,18 +220,18 @@ export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
                 className="absolute inset-0 bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center justify-center"
                 style={{ backfaceVisibility: 'hidden' }}
               >
-                <p className="text-xs uppercase text-gray-500 mb-4">Tu vung</p>
+                <p className="text-xs uppercase text-gray-500 mb-4">Term</p>
                 <p className="text-2xl font-medium text-center">{currentCard.term}</p>
-                <p className="text-xs text-gray-400 mt-6">Click/Tap de lat the</p>
+                <p className="text-xs text-gray-400 mt-6">Click/Tap to flip the card</p>
               </div>
 
               <div
                 className="absolute inset-0 bg-blue-600 rounded-2xl shadow-2xl p-8 flex flex-col items-center justify-center text-white"
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
-                <p className="text-xs uppercase opacity-80 mb-4">Dinh nghia</p>
+                <p className="text-xs uppercase opacity-80 mb-4">Meaning</p>
                 <p className="text-xl text-center">{currentCard.meaning}</p>
-                <p className="text-xs opacity-60 mt-6">Tap de lat lai</p>
+                <p className="text-xs opacity-60 mt-6">Click/Tap to flip back</p>
               </div>
             </div>
           </div>
@@ -209,28 +242,28 @@ export function StudyMode({ deck, onApplyMasteryAction }: StudyModeProps) {
                 variant="outline"
                 onClick={() => void handleMasteryAction('relearn')}
                 disabled={isSavingCard}
-                className="h-11"
+                className="h-11 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 data-testid="study-relearn-btn"
+                aria-label="Still learning"
               >
                 {isSavingCard ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Chua biet
-                  </>
+                  <X className="w-5 h-5" />
                 )}
               </Button>
               <Button
                 onClick={() => void handleMasteryAction('known')}
                 disabled={isSavingCard}
-                className="h-11"
+                variant="outline"
+                className="h-11 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
                 data-testid="study-known-btn"
+                aria-label="Know"
               >
                 {isSavingCard ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Da biet'
+                  <Check className="w-5 h-5" />
                 )}
               </Button>
             </div>

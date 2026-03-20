@@ -144,34 +144,32 @@ export function StudyMode({
       return;
     }
 
+    const currentCardId = currentCard.id;
     setIsSavingCard(true);
     try {
-      await onApplyMasteryAction(currentCard.id, action);
+      await onApplyMasteryAction(currentCardId, action);
 
-      setSessionQueueIds((previous) => {
-        const next = [...previous];
-        const idx = next.indexOf(currentCard.id);
-        if (idx === -1) {
-          return previous;
-        }
+      const queueSnapshot = [...sessionQueueIds];
+      const currentQueueIndex = queueSnapshot.indexOf(currentCardId);
 
-        next.splice(idx, 1);
+      if (currentQueueIndex !== -1) {
+        const queueWithoutCurrent = [...queueSnapshot];
+        queueWithoutCurrent.splice(currentQueueIndex, 1);
 
-        if (action === 'relearn') {
-          next.push(currentCard.id);
-        }
+        const nextQueue =
+          action === 'relearn'
+            ? [...queueWithoutCurrent, currentCardId]
+            : queueWithoutCurrent;
 
-        return next;
-      });
+        const nextIndex =
+          queueWithoutCurrent.length === 0
+            ? 0
+            : currentQueueIndex % queueWithoutCurrent.length;
 
-      setCurrentIndex((prev) => {
-        if (action === 'known') {
-          const nextLength = activeCards.length - 1;
-          return Math.max(0, Math.min(prev, nextLength - 1));
-        }
+        setSessionQueueIds(nextQueue);
+        setCurrentIndex(nextIndex);
+      }
 
-        return prev;
-      });
       setIsFlipped(false);
     } finally {
       setIsSavingCard(false);

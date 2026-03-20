@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { StudyMode } from '../StudyMode';
 import { Deck } from '../../types';
@@ -45,5 +45,58 @@ describe('StudyMode mastery flow', () => {
 
     expect(screen.getByTestId('study-relearn-btn')).toBeInTheDocument();
     expect(screen.getByTestId('study-known-btn')).toBeInTheDocument();
+  });
+
+  it('moves to the next card when relearn is pressed on the last card', async () => {
+    const onApplyMasteryAction = vi.fn(async () => {});
+    const multiDeck: Deck = {
+      ...deck,
+      cards: [
+        {
+          ...deck.cards[0],
+          id: 'card-1',
+          term: 'Cell',
+        },
+        {
+          ...deck.cards[0],
+          id: 'card-2',
+          term: 'Nucleus',
+        },
+        {
+          ...deck.cards[0],
+          id: 'card-3',
+          term: 'Mitochondria',
+        },
+      ],
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/study/deck-1']}>
+        <Routes>
+          <Route
+            path="/study/:deckId"
+            element={
+              <StudyMode
+                deck={multiDeck}
+                learnQueue={['card-1', 'card-2', 'card-3']}
+                onApplyMasteryAction={onApplyMasteryAction}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }));
+    expect(screen.getByText('Mitochondria')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Mitochondria'));
+    fireEvent.click(screen.getByTestId('study-relearn-btn'));
+
+    await waitFor(() =>
+      expect(onApplyMasteryAction).toHaveBeenCalledWith('card-3', 'relearn')
+    );
+    expect(screen.getByText('Cell')).toBeInTheDocument();
   });
 });

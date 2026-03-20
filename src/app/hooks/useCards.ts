@@ -97,10 +97,6 @@ export function useCards(deckId: string | undefined) {
 
       const removedCards = cards.filter((card) => !nextById.has(card.id));
       const addedCards = nextCards.filter((card) => !currentById.has(card.id));
-      const toggledCards = nextCards.filter((card) => {
-        const current = currentById.get(card.id);
-        return current && current.isUnfamiliar !== card.isUnfamiliar;
-      });
 
       try {
         for (const removed of removedCards) {
@@ -114,16 +110,6 @@ export function useCards(deckId: string | undefined) {
             method: 'POST',
             body: JSON.stringify(toCreatePayload(added, deckId)),
           });
-        }
-
-        for (const toggled of toggledCards) {
-          await requestJson<{ success: boolean }>(
-            `/api/cards/${toggled.id}/unfamiliar`,
-            {
-              method: 'PATCH',
-              body: JSON.stringify({ isUnfamiliar: toggled.isUnfamiliar }),
-            }
-          );
         }
 
         await refreshCards();

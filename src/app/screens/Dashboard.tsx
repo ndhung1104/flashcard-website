@@ -89,11 +89,6 @@ export function Dashboard({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">
                     {deck.cards.length} {deck.cards.length === 1 ? 'card' : 'cards'}
-                    {deck.cards.filter(c => c.isUnfamiliar).length > 0 && (
-                      <span className="ml-2 text-yellow-600">
-                        • {deck.cards.filter(c => c.isUnfamiliar).length} unfamiliar
-                      </span>
-                    )}
                   </span>
                   <div className="flex gap-2">
                     <Link to={`/deck/${deck.id}`}>
@@ -131,3 +126,4 @@ export function Dashboard({
     </div>
   );
 }
+

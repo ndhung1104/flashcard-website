@@ -100,23 +100,6 @@ export async function insertCardsIgnoreDuplicates(
   return (data ?? []) as CardRecord[];
 }
 
-export async function setCardUnfamiliar(
-  supabase: any,
-  userId: string,
-  cardId: string,
-  isUnfamiliar: boolean
-): Promise<void> {
-  const { error } = await supabase
-    .from('cards')
-    .update({ is_unfamiliar: isUnfamiliar })
-    .eq('id', cardId)
-    .eq('user_id', userId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-
 export async function setCardMastery(
   supabase: any,
   userId: string,

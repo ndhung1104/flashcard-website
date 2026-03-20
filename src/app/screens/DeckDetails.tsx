@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router';
 import {
   ArrowLeft,
   Upload,
-  Star,
   Filter,
   Plus,
   Trash2,
@@ -29,14 +28,12 @@ export function DeckDetails({ deck, onUpdateDeck, onOpenImport }: DeckDetailsPro
   const { deckId } = useParams();
   const navigate = useNavigate();
   const [filterTag, setFilterTag] = useState<string>('all');
-  const [showUnfamiliarOnly, setShowUnfamiliarOnly] = useState(false);
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newTerm, setNewTerm] = useState('');
   const [newMeaning, setNewMeaning] = useState('');
   const [newTags, setNewTags] = useState('');
   const [isSavingDeck, setIsSavingDeck] = useState(false);
   const [isAddingCardSubmitting, setIsAddingCardSubmitting] = useState(false);
-  const [pendingToggleCardId, setPendingToggleCardId] = useState<string | null>(null);
   const [pendingDeleteCardId, setPendingDeleteCardId] = useState<string | null>(null);
 
   if (!deck || !deckId) {
@@ -60,26 +57,10 @@ export function DeckDetails({ deck, onUpdateDeck, onOpenImport }: DeckDetailsPro
 
   const filteredCards = useMemo(() => {
     return deck.cards.filter((card) => {
-      if (showUnfamiliarOnly && !card.isUnfamiliar) return false;
       if (filterTag !== 'all' && !card.tags.includes(filterTag)) return false;
       return true;
     });
-  }, [deck.cards, filterTag, showUnfamiliarOnly]);
-
-  const toggleUnfamiliar = async (cardId: string) => {
-    if (isSavingDeck) return;
-    const updatedCards = deck.cards.map((card) =>
-      card.id === cardId ? { ...card, isUnfamiliar: !card.isUnfamiliar } : card
-    );
-    setPendingToggleCardId(cardId);
-    setIsSavingDeck(true);
-    try {
-      await onUpdateDeck(deckId, { cards: updatedCards });
-    } finally {
-      setPendingToggleCardId(null);
-      setIsSavingDeck(false);
-    }
-  };
+  }, [deck.cards, filterTag]);
 
   const deleteCard = async (cardId: string) => {
     if (isSavingDeck) return;
@@ -173,15 +154,6 @@ export function DeckDetails({ deck, onUpdateDeck, onOpenImport }: DeckDetailsPro
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              onClick={() => setShowUnfamiliarOnly(!showUnfamiliarOnly)}
-              variant={showUnfamiliarOnly ? 'default' : 'outline'}
-              size="sm"
-              disabled={isSavingDeck}
-            >
-              <Star className="w-4 h-4 mr-2" />
-              Unfamiliar
-            </Button>
           </div>
         </div>
       </header>
@@ -202,29 +174,8 @@ export function DeckDetails({ deck, onUpdateDeck, onOpenImport }: DeckDetailsPro
               <UICard key={card.id} className="p-4">
                 <div className="flex gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className="flex-1">
-                        <p className="font-medium mb-1">{card.term}</p>
-                        <p className="text-sm text-gray-600">{card.meaning}</p>
-                      </div>
-                      <button
-                        onClick={() => void toggleUnfamiliar(card.id)}
-                        disabled={isSavingDeck}
-                        className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-                      >
-                        {pendingToggleCardId === card.id ? (
-                          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                        ) : (
-                          <Star
-                            className={`w-5 h-5 ${
-                              card.isUnfamiliar
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'text-gray-400'
-                            }`}
-                          />
-                        )}
-                      </button>
-                    </div>
+                    <p className="font-medium mb-1">{card.term}</p>
+                    <p className="text-sm text-gray-600 mb-2">{card.meaning}</p>
                     <div className="flex items-center gap-1 flex-wrap">
                       {card.tags.map((tag) => (
                         <Badge key={tag} variant="secondary" className="text-xs">

@@ -244,7 +244,7 @@ export function StudyMode({
                 disabled={isSavingCard}
                 className="h-11 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 data-testid="study-relearn-btn"
-                aria-label="Still learning"
+                aria-label="Chua biet"
               >
                 {isSavingCard ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -258,7 +258,7 @@ export function StudyMode({
                 variant="outline"
                 className="h-11 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
                 data-testid="study-known-btn"
-                aria-label="Know"
+                aria-label="Da biet"
               >
                 {isSavingCard ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -51,6 +51,6 @@ Also keep existing Supabase env vars.
 `vercel.json` already includes:
 
 - `/api/import?action=drive-sync-cron`
-- every 30 minutes
+- once per day (`0 1 * * *`, UTC, Hobby-compatible)
 
 After deploy, Vercel will call this endpoint automatically.

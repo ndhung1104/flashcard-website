@@ -139,7 +139,7 @@ npm run build
 
 `vercel.json` schedules:
 
-- `/api/import?action=drive-sync-cron` every 30 minutes.
+- `/api/import?action=drive-sync-cron` once per day (`0 1 * * *`, UTC).
 
 ### Drive OAuth requirements
 

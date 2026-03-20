@@ -1,5 +1,15 @@
 -- Supabase initial bootstrap for Flashcards app
 -- Run once in Supabase SQL editor.
+-- WARNING: This script is destructive in dev mode.
+-- Running this file will DROP existing app tables and recreate them from scratch.
+
+drop table if exists public.drive_import_sources cascade;
+drop table if exists public.import_jobs cascade;
+drop table if exists public.card_tags cascade;
+drop table if exists public.tags cascade;
+drop table if exists public.cards cascade;
+drop table if exists public.decks cascade;
+drop table if exists public.profiles cascade;
 
 create extension if not exists pgcrypto;
 

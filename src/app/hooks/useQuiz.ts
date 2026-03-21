@@ -29,13 +29,14 @@ export function useQuiz(deckId: string | undefined) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMeaning, setSelectedMeaning] = useState<string | null>(null);
   const [answerResult, setAnswerResult] = useState<QuizAnswerResponse | null>(null);
+  const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const [stats, setStats] = useState<QuizStats>({
     correct: 0,
     wrong: 0,
     upgradedToLevel3: 0,
   });
 
-  const loadNextQuestion = useCallback(async () => {
+  const fetchQuestion = useCallback(async (excludeCardIds: string[] = []) => {
     if (!deckId) {
       setQuestion(null);
       setIsLoadingQuestion(false);
@@ -47,7 +48,15 @@ export function useQuiz(deckId: string | undefined) {
     setAnswerResult(null);
 
     try {
-      const response = await fetch(`/api/quiz/next?deckId=${encodeURIComponent(deckId)}`, {
+      const params = new URLSearchParams({
+        deckId,
+      });
+
+      if (excludeCardIds.length > 0) {
+        params.set('excludeCardIds', excludeCardIds.join(','));
+      }
+
+      const response = await fetch(`/api/quiz/next?${params.toString()}`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -66,9 +75,29 @@ export function useQuiz(deckId: string | undefined) {
     }
   }, [deckId]);
 
+  const loadNextQuestion = useCallback(async () => {
+    await fetchQuestion(answeredCardIds);
+  }, [answeredCardIds, fetchQuestion]);
+
+  const restartQuiz = useCallback(async () => {
+    setAnsweredCardIds([]);
+    setStats({
+      correct: 0,
+      wrong: 0,
+      upgradedToLevel3: 0,
+    });
+    await fetchQuestion([]);
+  }, [fetchQuestion]);
+
   useEffect(() => {
-    void loadNextQuestion();
-  }, [loadNextQuestion]);
+    setAnsweredCardIds([]);
+    setStats({
+      correct: 0,
+      wrong: 0,
+      upgradedToLevel3: 0,
+    });
+    void fetchQuestion([]);
+  }, [fetchQuestion]);
 
   const submitAnswer = useCallback(
     async (meaning: string) => {
@@ -102,6 +131,12 @@ export function useQuiz(deckId: string | undefined) {
         }
 
         setAnswerResult(payload);
+        setAnsweredCardIds((previous) => {
+          if (previous.includes(question.cardId)) {
+            return previous;
+          }
+          return [...previous, question.cardId];
+        });
         setStats((previous) => ({
           correct: previous.correct + (payload.isCorrect ? 1 : 0),
           wrong: previous.wrong + (payload.isCorrect ? 0 : 1),
@@ -123,6 +158,7 @@ export function useQuiz(deckId: string | undefined) {
     answerResult,
     submitAnswer,
     loadNextQuestion,
+    restartQuiz,
     stats,
   };
 }

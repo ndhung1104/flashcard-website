@@ -21,6 +21,7 @@ export function QuizMode({ deck }: QuizModeProps) {
     answerResult,
     submitAnswer,
     loadNextQuestion,
+    restartQuiz,
     stats,
   } = useQuiz(deckId);
 
@@ -81,11 +82,18 @@ export function QuizMode({ deck }: QuizModeProps) {
           </Card>
         ) : !question ? (
           <Card className="p-8 text-center">
-            <h2 className="text-lg font-semibold mb-2">Không còn câu hỏi phù hợp</h2>
+            <h2 className="text-lg font-semibold mb-2">Khong con cau hoi</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Các thẻ đã thuộc đã được tạm ẩn khỏi quiz hiện tại.
+              Ban da hoan thanh toan bo cau hoi trong deck.
             </p>
-            <Button onClick={() => navigate(`/study/${deckId}`)}>Qua Study Mode</Button>
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="outline" onClick={() => navigate(`/deck/${deckId}`)}>
+                Ve deck
+              </Button>
+              <Button onClick={() => void restartQuiz()}>
+                Bat dau quiz moi
+              </Button>
+            </div>
           </Card>
         ) : (
           <Card className="p-5 space-y-4">
@@ -138,3 +146,4 @@ export function QuizMode({ deck }: QuizModeProps) {
     </div>
   );
 }
+
